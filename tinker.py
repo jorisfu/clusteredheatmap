@@ -9,9 +9,10 @@ from glustercram.algos import distance, linkage
 points: list[Vector] = [
     (1, 1),
     (1.5, 1),
-    (1, 1.5),
+    # (1, 1.5),
     (3.5, 1),
     (3.5, 2),
+    # (3.75, 2),
 ]
 
 print(hac.general(points, distance.euclidean, linkage.single))
