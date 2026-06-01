@@ -9,7 +9,7 @@ import numpy as np
 inf = float("inf")
 
 
-def general(data: list[T], distance: DistFun[T], linkage: LinkageFun[T]):
+def general(data: list[T], distance: DistFun[T], linkage: LinkageFun[T]) -> Dendrogram:
     """
     Trivial O(n³) algorithm for HAC as described in Section 8.2.1
     TODO: Full citation
@@ -95,4 +95,4 @@ def general(data: list[T], distance: DistFun[T], linkage: LinkageFun[T]):
     # for _ in range(n - 1):
     # np.min(dist_mat, where=)
 
-    return
+    return Dendrogram([1, 1], 0)
