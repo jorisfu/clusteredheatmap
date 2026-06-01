@@ -58,7 +58,6 @@ def general(data: list[T], distance: DistFun[T], linkage: LinkageFun[T]):
             if i not in cluster.children
         ]
 
-    
         min_dist_indices = (0, 1)
 
         # Update first row with linkage criterion
@@ -76,7 +75,7 @@ def general(data: list[T], distance: DistFun[T], linkage: LinkageFun[T]):
         # Keep remaining rows
         for row in range(1, dim):
             for col in range(row + 1, dim):
-                d = prev_dist_mat[idx_map[row], idx_map[col]] 
+                d = prev_dist_mat[idx_map[row], idx_map[col]]
                 dist_mat[row, col] = d
 
                 # Update potential lowest distance
