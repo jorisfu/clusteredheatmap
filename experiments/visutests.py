@@ -13,6 +13,6 @@ from glustercram.visu.heatmap import heatmap
 
 d1: HeatmapMatrix = np.array([[1, 2, 3], [3, 2, 2], [3, np.nan, 3]])
 
-fig = go.Figure(data=heatmap(d1, nan_color="#808080"))
+fig = go.Figure(data=heatmap(d1, nan_color="#808080", hovertemplate="Asdjasd"))
 
 fig.show()

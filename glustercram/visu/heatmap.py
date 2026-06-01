@@ -28,16 +28,16 @@ def generate_background_map(data: HeatmapMatrix, nan_color: Color) -> go.Heatmap
     return background_map
 
 
-def heatmap(data: HeatmapMatrix, *, nan_color: Color | None = None):
+def heatmap(data: HeatmapMatrix, *, nan_color: Color | None = None, **kwargs):
     """
-    Generates a plotly heatmap.
+    Wrapper for go.Heatmap, creates a plotly heatmap
 
     :param data: the data to plot
     :param nan_color: the color of the cells for NaN values. Defaults to transparent if None
     """
     fig = go.Figure()
 
-    heatmap = go.Heatmap(z=data)
+    heatmap = go.Heatmap(z=data, **kwargs)  # pyright: ignore[reportUnknownArgumentType]
 
     if nan_color is not None:
         background_map = generate_background_map(data, nan_color)
