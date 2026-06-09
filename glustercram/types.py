@@ -1,21 +1,18 @@
-from typing import Callable, TypeVar
+from typing import Any, Callable
 import numpy as np
 import numpy.typing as npt
 
-""" Generic type used for the data to cluster """
-T = TypeVar("T")
-
-""" Distance function measuring distance between two data points """
-DistFun = Callable[[T, T], float]
-
-""" 
-Linkage function measuring distance between two sets of data points. 
-Requires a corresponding distance function.
-"""
-LinkageFun = Callable[[DistFun[T], set[T], set[T]], float]
-
 """ List of coordinates to be mapped in euclidean space """
 Vector = npt.ArrayLike
+
+""" Distance function measuring distance between two data points """
+DistFun = Callable[[Vector, Vector], np.float64]
+
+""" Function generating a linkage matrix, compatible with scipy.cluster.hierarchy.linkage """
+LinkageFun = Callable[[npt.NDArray[np.float64], DistFun], npt.NDArray[np.float64]]
+
+""" Function computing a linkage matrix from a given array of observations with a predefined linkage and distance method """
+ClusteringFun = Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
 
 """ 2D matrix with floats (np.nan allowed) """
 HeatmapMatrix = npt.NDArray[np.float64]

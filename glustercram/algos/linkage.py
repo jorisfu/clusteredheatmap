@@ -1,15 +1,45 @@
-from glustercram.types import DistFun, T
-
-
 from typing import Literal
+
+from glustercram.algos.distance import DistFunName, get_distfun_for_scipy
+from glustercram.types import ClusteringFun, DistFun, LinkageFun
+import scipy
 
 LinkageFunName = Literal["single"]
 
 
-def single(distance: DistFun[T], a: set[T], b: set[T]) -> float:
-    dists: list[float] = []
-    for x in a:
-        for y in b:
-            dists.append(distance(x, y))
+SCIPY_SUPPORTED_LINKAGES = [
+    "single",
+    "complete",
+    "average",
+    "weighted",
+    "centroid",
+    "median",
+    "ward",
+]
 
-    return min(dists)
+
+def get_preferred_implementation(
+    linkage: LinkageFunName | LinkageFun, distance: DistFunName | DistFun
+) -> ClusteringFun:
+    # TODO
+    if not isinstance(linkage, str):
+        raise ValueError("Custom linkage method not supported (yet)")
+
+    if linkage in SCIPY_SUPPORTED_LINKAGES:
+        distance_for_scipy = (
+            distance
+            if callable(distance)
+            else get_distfun_for_scipy(distance)
+        )
+
+        fun: ClusteringFun = lambda data: scipy.cluster.hierarchy.linkage(
+            data,
+            method=linkage,
+            metric=distance_for_scipy,
+            optimal_ordering=False,
+        )
+
+        return fun
+
+    else:
+        raise ValueError(f"Linkage method '{linkage}' not supported")
