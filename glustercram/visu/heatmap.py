@@ -28,7 +28,13 @@ def generate_background_map(data: HeatmapMatrix, nan_color: Color) -> go.Heatmap
     return background_map
 
 
-def heatmap(data: HeatmapMatrix, *, nan_color: Color | None = None, **kwargs):
+def heatmap(
+    data: HeatmapMatrix,
+    *,
+    nan_color: Color | None = None,
+    heatmap_legend_title: str = "",
+    **kwargs
+):
     """
     Wrapper for go.Heatmap, creates a plotly heatmap
 
@@ -37,7 +43,18 @@ def heatmap(data: HeatmapMatrix, *, nan_color: Color | None = None, **kwargs):
     """
     fig = go.Figure()
 
-    heatmap = go.Heatmap(z=data, **kwargs)  # pyright: ignore[reportUnknownArgumentType]
+    heatmap = go.Heatmap(
+        z=data,
+        colorbar=dict(
+            title=heatmap_legend_title,
+            yanchor="bottom",
+            y=0.0,
+            # len=1 / self.colorbar_count,
+            # tickmode="array",
+            # tickvals=(zmin, target_data_midpoint, zmax),
+        ),
+        **kwargs  # pyright: ignore[reportUnknownArgumentType]
+    )
 
     if nan_color is not None:
         background_map = generate_background_map(data, nan_color)
@@ -45,4 +62,5 @@ def heatmap(data: HeatmapMatrix, *, nan_color: Color | None = None, **kwargs):
 
     _ = fig.add_trace(heatmap)
 
-    return fig
+    # TODO: Fix plotly upstream or find a way to add a whole figure as a subplot
+    return [background_map, heatmap]

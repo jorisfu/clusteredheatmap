@@ -4,7 +4,15 @@ from glustercram.algos.distance import DistFunName, get_distfun_for_scipy
 from glustercram.types import ClusteringFun, DistFun, LinkageFun
 import scipy
 
-LinkageFunName = Literal["single"]
+LinkageFunName = Literal[
+    "single",
+    "complete",
+    "average",
+    "weighted",
+    "centroid",
+    "median",
+    "ward",
+]
 
 
 SCIPY_SUPPORTED_LINKAGES = [
@@ -27,9 +35,7 @@ def get_preferred_implementation(
 
     if linkage in SCIPY_SUPPORTED_LINKAGES:
         distance_for_scipy = (
-            distance
-            if callable(distance)
-            else get_distfun_for_scipy(distance)
+            distance if callable(distance) else get_distfun_for_scipy(distance)
         )
 
         fun: ClusteringFun = lambda data: scipy.cluster.hierarchy.linkage(
