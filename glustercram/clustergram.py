@@ -1,10 +1,12 @@
 # pyright: reportExplicitAny=false
 
 from typing import Any
+
+from plotly.graph_objs import Figure
 from glustercram.algos.distance import DistFunName
 from glustercram.algos.linkage import LinkageFunName
 from glustercram.dendrogram import Dendrogram
-from glustercram.types import ClusteringFun, Color, DistFun, HeatmapMatrix, LinkageFun
+from glustercram.types import ClusteringFun, Color, DistFun, HeatmapMatrix, LayoutPoint, LinkageFun
 from glustercram.visu.heatmap import heatmap
 import glustercram.algos.distance as dist
 import glustercram.algos.linkage as link
@@ -68,6 +70,7 @@ class Clustergram:
     def get_visualization_plotly(
         self,
         *,
+        plot_bgcolor: str = "white",
         heatmap_legend_title: str = "Heatmap legend",
         heatmap_nan_color: Color = "#000000",
         heatmap_kwargs: dict[str, Any] | None = None,
@@ -84,9 +87,9 @@ class Clustergram:
 
         # GM = Group Marker
         # [empty]      [empty]     [col. dendro] [col. dendro]
-        # [row dendro] [row GM]    [col. GM]     [col. GM]
+        # [empty]      [empty]     [col. GM]     [col. GM]
         # [row dendro] [row GM]    [heatmap]     [heatmap]
-        # [empty]      [empty]     [heatmap]     [heatmap]
+        # [row dendro] [row GM]    [heatmap]     [heatmap]
         # Addressing starts from top left, row major
         rows = 4
         cols = 4
@@ -94,11 +97,18 @@ class Clustergram:
             [None for _ in range(cols)] for _ in range(rows)
         ]
 
-        specs[0][2] = {"colspan": 2}  # Column Dendrogram
-        specs[1][0] = {"rowspan": 2}  # Row Dendrogram
-        specs[1][2] = {"colspan": 2}  # Column Group Markers
-        specs[1][1] = {"rowspan": 2}  # Row Group Markers
-        specs[2][2] = {"colspan": 2, "rowspan": 2}  # Heatmap
+        # For updating layouts, rows/cols are 1-indexed row-major
+        COL_DENDRO_POS = LayoutPoint(1, 3)
+        ROW_DENDRO_POS = LayoutPoint(3, 1)
+        COL_GM_POS = LayoutPoint(2, 3)
+        ROW_GM_POS = LayoutPoint(3, 2)
+        HEATMAP_POS = LayoutPoint(3, 3)
+
+        specs[COL_DENDRO_POS.x - 1][COL_DENDRO_POS.y - 1] = {"colspan": 2}  # Column Dendrogram
+        specs[ROW_DENDRO_POS.x - 1][ROW_DENDRO_POS.y - 1] = {"rowspan": 2}  # Row Dendrogram
+        specs[COL_GM_POS.x - 1][COL_GM_POS.y - 1] = {"colspan": 2}  # Column Group Markers
+        specs[ROW_GM_POS.x - 1][ROW_GM_POS.y - 1] = {"rowspan": 2}  # Row Group Markers
+        specs[HEATMAP_POS.x - 1][HEATMAP_POS.y - 1] = {"colspan": 2, "rowspan": 2}  # Heatmap
 
         fig = subplots.make_subplots(
             rows=rows,
@@ -118,12 +128,30 @@ class Clustergram:
                 heatmap_legend_title=heatmap_legend_title,
                 **(heatmap_kwargs or dict()),
             ),
-            rows=[2, 2],
-            cols=[2, 2],
+            rows=[HEATMAP_POS.x] * 2,
+            cols=[HEATMAP_POS.y] * 2,
         )
 
         
         ## DENDROGRAMS
+
+        dendro_axes_layout = {
+            "showline": False,
+            "showgrid": False,
+            "showticklabels": False,
+        }
+
+        def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
+            _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
+            _ = fig.update_yaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
+
+        def add_tracelist(fig: Figure, subplot_pos: LayoutPoint, traces: list):
+            _ = fig.add_traces(
+                traces,
+                rows=[subplot_pos.x] * len(traces),
+                cols=[subplot_pos.y] * len(traces),
+            )
+
         # Columns
         cols_dendro_traces = ff._dendrogram._Dendrogram(
             self.data_cols,
@@ -131,8 +159,8 @@ class Clustergram:
             distfun=lambda _: None,
             linkagefun=lambda _: self.linkage_matrix_cols # Always use precomputed matrix
         ).data
-
-        # TODO: Add Dendro Cols to plot
+        add_tracelist(fig, COL_DENDRO_POS, cols_dendro_traces)
+        update_xyaxes(fig, COL_DENDRO_POS, **dendro_axes_layout)
 
         # Rows
         rows_dendro_traces = ff._dendrogram._Dendrogram(
@@ -141,8 +169,8 @@ class Clustergram:
             distfun=lambda _: None,
             linkagefun=lambda _: self.linkage_matrix_rows # Always use precomputed matrix
         ).data
-
-        # TODO: Add Dendro Rows to plot
+        add_tracelist(fig, ROW_DENDRO_POS, rows_dendro_traces)
+        update_xyaxes(fig, ROW_DENDRO_POS, **dendro_axes_layout)
 
         ## GROUP MARKERS
         # Rows
@@ -150,6 +178,12 @@ class Clustergram:
 
         # Columns
         # TODO
+
+
+        _ = fig.update_layout(
+            plot_bgcolor = plot_bgcolor,
+            showlegend=False
+        )
 
         fig.show()
         return fig

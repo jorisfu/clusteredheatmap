@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections import namedtuple
+from typing import Any, Callable, NamedTuple
 import numpy as np
 import numpy.typing as npt
 
@@ -19,3 +20,8 @@ HeatmapMatrix = npt.NDArray[np.float64]
 
 """ Plotly-compatible color definition"""
 Color = str
+
+""" Point in 2D space, used for layouting """
+class LayoutPoint(NamedTuple):
+    x: int
+    y: int
