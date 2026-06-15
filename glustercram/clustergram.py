@@ -6,11 +6,19 @@ from plotly.graph_objs import Figure
 from glustercram.algos.distance import DistFunName
 from glustercram.algos.linkage import LinkageFunName
 from glustercram.dendrogram import Dendrogram
-from glustercram.types import ClusteringFun, Color, DistFun, HeatmapMatrix, LayoutPoint, LinkageFun
+from glustercram.types import (
+    ClusteringFun,
+    Color,
+    DistFun,
+    HeatmapMatrix,
+    LayoutPoint,
+    LinkageFun,
+)
 from glustercram.visu.heatmap import heatmap
 import glustercram.algos.distance as dist
 import glustercram.algos.linkage as link
 import pandas as pd
+import numpy as np
 import scipy
 
 import plotly.graph_objects as go
@@ -24,6 +32,8 @@ class Clustergram:
         data: pd.DataFrame,
         distance: DistFunName | DistFun,
         linkage: LinkageFunName | LinkageFun,
+        column_group_mapping: dict[str, str] | None = None,
+        row_group_mapping: dict[str, str] | None = None,
     ) -> None:
         """
         Computes the necessary data for a clustered heatmap.
@@ -35,6 +45,8 @@ class Clustergram:
             Custom distance functions must be compatible with [[TODO: Signature]]
         :param linkage: The name of the linkage function to use or a custom linkage function.
             Custom linkage functions must be compatible with [[TODO: Signature]]
+        :param column_group_mapping: Dict mapping columns to groups
+        :param row_group_mapping: Dict mapping columns to groups
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
@@ -64,8 +76,19 @@ class Clustergram:
 
         permuted_data = self.data_rows[rows_permutation]
         self.permuted_data: HeatmapMatrix = permuted_data[:, cols_permutation]
-        self.permuted_column_labels: list[str] = [self.data.columns[int(i)] for i in cols_permutation]
-        self.permuted_row_labels: list[str] = [self.data.index[int(i)] for i in rows_permutation]
+        self.permuted_column_labels: list[str] = [
+            self.data.columns[int(i)] for i in cols_permutation
+        ]
+        self.permuted_row_labels: list[str] = [
+            self.data.index[int(i)] for i in rows_permutation
+        ]
+
+        self.column_group_mapping: dict[str, str] = (
+            column_group_mapping if column_group_mapping is not None else dict()
+        )
+        self.row_group_mapping: dict[str, str] = (
+            row_group_mapping if row_group_mapping is not None else dict()
+        )
 
     def get_visualization_plotly(
         self,
@@ -104,11 +127,20 @@ class Clustergram:
         ROW_GM_POS = LayoutPoint(3, 2)
         HEATMAP_POS = LayoutPoint(3, 3)
 
-        specs[COL_DENDRO_POS.x - 1][COL_DENDRO_POS.y - 1] = {"colspan": 2}  # Column Dendrogram
-        specs[ROW_DENDRO_POS.x - 1][ROW_DENDRO_POS.y - 1] = {"rowspan": 2}  # Row Dendrogram
-        specs[COL_GM_POS.x - 1][COL_GM_POS.y - 1] = {"colspan": 2}  # Column Group Markers
+        specs[COL_DENDRO_POS.x - 1][COL_DENDRO_POS.y - 1] = {
+            "colspan": 2
+        }  # Column Dendrogram
+        specs[ROW_DENDRO_POS.x - 1][ROW_DENDRO_POS.y - 1] = {
+            "rowspan": 2
+        }  # Row Dendrogram
+        specs[COL_GM_POS.x - 1][COL_GM_POS.y - 1] = {
+            "colspan": 2
+        }  # Column Group Markers
         specs[ROW_GM_POS.x - 1][ROW_GM_POS.y - 1] = {"rowspan": 2}  # Row Group Markers
-        specs[HEATMAP_POS.x - 1][HEATMAP_POS.y - 1] = {"colspan": 2, "rowspan": 2}  # Heatmap
+        specs[HEATMAP_POS.x - 1][HEATMAP_POS.y - 1] = {
+            "colspan": 2,
+            "rowspan": 2,
+        }  # Heatmap
 
         fig = subplots.make_subplots(
             rows=rows,
@@ -118,6 +150,16 @@ class Clustergram:
             horizontal_spacing=0.0,
         )
 
+        def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
+            _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
+            _ = fig.update_yaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
+
+        def add_tracelist(fig: Figure, subplot_pos: LayoutPoint, traces: list):
+            _ = fig.add_traces(
+                traces,
+                rows=[subplot_pos.x] * len(traces),
+                cols=[subplot_pos.y] * len(traces),
+            )
 
         ## HEATMAP
 
@@ -132,7 +174,8 @@ class Clustergram:
             cols=[HEATMAP_POS.y] * 2,
         )
 
-        
+        update_xyaxes(fig, HEATMAP_POS, showticklabels=False)
+
         ## DENDROGRAMS
 
         dendro_axes_layout = {
@@ -141,23 +184,12 @@ class Clustergram:
             "showticklabels": False,
         }
 
-        def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
-            _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
-            _ = fig.update_yaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
-
-        def add_tracelist(fig: Figure, subplot_pos: LayoutPoint, traces: list):
-            _ = fig.add_traces(
-                traces,
-                rows=[subplot_pos.x] * len(traces),
-                cols=[subplot_pos.y] * len(traces),
-            )
-
         # Columns
         cols_dendro_traces = ff._dendrogram._Dendrogram(
             self.data_cols,
             orientation="bottom",
             distfun=lambda _: None,
-            linkagefun=lambda _: self.linkage_matrix_cols # Always use precomputed matrix
+            linkagefun=lambda _: self.linkage_matrix_cols,  # Always use precomputed matrix
         ).data
         add_tracelist(fig, COL_DENDRO_POS, cols_dendro_traces)
         update_xyaxes(fig, COL_DENDRO_POS, **dendro_axes_layout)
@@ -167,23 +199,89 @@ class Clustergram:
             self.data_rows,
             orientation="right",
             distfun=lambda _: None,
-            linkagefun=lambda _: self.linkage_matrix_rows # Always use precomputed matrix
+            linkagefun=lambda _: self.linkage_matrix_rows,  # Always use precomputed matrix
         ).data
         add_tracelist(fig, ROW_DENDRO_POS, rows_dendro_traces)
         update_xyaxes(fig, ROW_DENDRO_POS, **dendro_axes_layout)
 
         ## GROUP MARKERS
-        # Rows
-        # TODO
+        def create_group_marker_trace(
+            data_labels: list[str],
+            label_to_group: dict[str, str],
+            group_to_color: dict[str, Color],
+            default_color: str = "#000000",
+            is_vertical: bool = False,
+        ):
+            """
+            Creates a trace used for group markers.
 
-        # Columns
-        # TODO
+            :param data_labels: The labels of the data as ordered on the axis to mark
+            :param label_to_group: Mapping of data labels to group identifiers.
+                If incomplete, mapping is performed to None
+            :param group_to_color: Mapping of group identifiers to colors.
+                If incomplete, mapping is performed to a default color scale TODO: Actually just this
+            :param default_color: Color for data points without an associated group
+            :param is_vertical: True iff the group markers are to be arranged vertically
+            """
 
+            all_groups = list(set(label_to_group.values()))
+            amount_of_groups = len(all_groups)
 
-        _ = fig.update_layout(
-            plot_bgcolor = plot_bgcolor,
-            showlegend=False
+            # Embedding like this required for continuous colorscale
+            group_to_z: dict[str | None, float] = {
+                g: i + 0.5
+                for i, g in enumerate(all_groups)  # Center within bin of size 1
+            }
+
+            data_as_groups = [label_to_group.get(label) for label in data_labels]
+            data_as_z_values = np.array(
+                [group_to_z.get(group, np.nan) for group in data_as_groups]
+            )
+
+            colorscale = [(0.0, default_color)]
+            for idx, group in enumerate(all_groups):
+                color = group_to_color.get(group, default_color)
+                # Imitate discrete scale by using thresholds of size 0.0
+                step_low = idx / amount_of_groups
+                step_high = (idx + 1) / amount_of_groups
+                colorscale.extend([(step_low, color), (step_high, color)])
+
+            print(colorscale)
+
+            trace = go.Heatmap(
+                z=data_as_z_values,
+                zmin=0,
+                zmax=amount_of_groups,
+                colorscale=colorscale,
+                colorbar=dict(
+                    title="Groups",
+                    tickvals=[i + 0.5 for i in range(amount_of_groups)],
+                    ticktext=all_groups,
+                    tickmode="array",
+                ),
+                hoverinfo="text",
+                text=data_labels,
+                hovertemplate="Index: %{x}<br>Group: %{text}<extra></extra>",
+            )
+
+            return trace
+
+        test_color_map = {
+            "CTL": "#ff0000",
+            "AD": "#f000f0",
+        }
+
+        column_gm_map = create_group_marker_trace(
+            self.permuted_column_labels,
+            self.column_group_mapping,
+            test_color_map,
         )
+
+        _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
+        # update_xyaxes(fig, COL_GM_POS, visible=False)
+
+
+        _ = fig.update_layout(plot_bgcolor=plot_bgcolor, showlegend=False)
 
         fig.show()
         return fig

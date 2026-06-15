@@ -40,6 +40,7 @@ c = Clustergram(
     significant_proteins,
     "nan_euclidean",
     "complete",
+    column_group_mapping={"P10": "CTL", "P11": "CTL", "P3": "AD"},
 )
 
 _ = c.get_visualization_plotly(

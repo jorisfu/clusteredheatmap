@@ -22,6 +22,8 @@ HeatmapMatrix = npt.NDArray[np.float64]
 Color = str
 
 """ Point in 2D space, used for layouting """
+
+
 class LayoutPoint(NamedTuple):
     x: int
     y: int
