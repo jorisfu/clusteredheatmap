@@ -41,6 +41,12 @@ c = Clustergram(
     "nan_euclidean",
     "complete",
     column_group_mapping={"P10": "CTL", "P11": "CTL", "P3": "AD"},
+    row_group_mapping={
+        "A3KMH1-3": "Cool Proteins", 
+        "A6NHQ2": "Cool Proteins", 
+        "Q9Y6R0": "Uncool Proteins",
+        "P09382": "Uncool Proteins",
+    },
 )
 
 _ = c.get_visualization_plotly(

@@ -235,8 +235,11 @@ class Clustergram:
 
             data_as_groups = [label_to_group.get(label) for label in data_labels]
             data_as_z_values = np.array(
-                [group_to_z.get(group, np.nan) for group in data_as_groups]
+                [[group_to_z.get(group, np.nan) for group in data_as_groups]]
             )
+
+            if is_vertical:
+                data_as_z_values = data_as_z_values.transpose()
 
             colorscale = [(0.0, default_color)]
             for idx, group in enumerate(all_groups):
@@ -245,8 +248,6 @@ class Clustergram:
                 step_low = idx / amount_of_groups
                 step_high = (idx + 1) / amount_of_groups
                 colorscale.extend([(step_low, color), (step_high, color)])
-
-            print(colorscale)
 
             trace = go.Heatmap(
                 z=data_as_z_values,
@@ -269,6 +270,7 @@ class Clustergram:
         test_color_map = {
             "CTL": "#ff0000",
             "AD": "#f000f0",
+            "Cool Proteins": "#FCE300",
         }
 
         column_gm_map = create_group_marker_trace(
@@ -278,8 +280,17 @@ class Clustergram:
         )
 
         _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
-        # update_xyaxes(fig, COL_GM_POS, visible=False)
+        update_xyaxes(fig, COL_GM_POS, visible=False)
 
+        row_gm_map = create_group_marker_trace(
+            self.permuted_row_labels,
+            self.row_group_mapping,
+            test_color_map,
+            is_vertical=True,
+        )
+
+        _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
+        update_xyaxes(fig, ROW_GM_POS, visible=False)
 
         _ = fig.update_layout(plot_bgcolor=plot_bgcolor, showlegend=False)
 
