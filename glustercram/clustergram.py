@@ -97,6 +97,8 @@ class Clustergram:
         heatmap_legend_title: str = "Heatmap legend",
         heatmap_nan_color: Color = "#000000",
         heatmap_kwargs: dict[str, Any] | None = None,
+        column_groups_legend_title: str = "Column Groups",
+        row_groups_legend_title: str = "Row Groups",
     ):
         """
         Returns the computed clustergram as a plotly figure.
@@ -142,6 +144,25 @@ class Clustergram:
             "rowspan": 2,
         }  # Heatmap
 
+        # Layout ratios
+        Y_LAYOUT_RATIOS = [30, 2, 80, 0][::-1]
+        X_LAYOUT_RATIOS = [30, 2, 80, 10]
+
+        def get_layout_domain_ratios(custom_ratios: list[int]) -> list[list[float]]:
+            normalized_ratios: list[float] = [i / sum(custom_ratios) for i in custom_ratios]
+            domains = []
+
+            start = 0.0
+            for boundary in normalized_ratios:
+                end = start + boundary
+                domains.append([start, end])
+                start = end
+
+            return domains
+
+        y_domains = get_layout_domain_ratios(Y_LAYOUT_RATIOS)[::-1]
+        x_domains = get_layout_domain_ratios(X_LAYOUT_RATIOS)
+
         fig = subplots.make_subplots(
             rows=rows,
             cols=cols,
@@ -149,6 +170,13 @@ class Clustergram:
             vertical_spacing=0.0,
             horizontal_spacing=0.0,
         )
+
+        for row in range(rows):
+            for col in range(cols):
+                if specs[row][col] is not None:
+                    _ = fig.update_yaxes(row=row+1, col=col+1, domain=y_domains[row])
+                    _ = fig.update_xaxes(row=row+1, col=col+1, domain=x_domains[col])
+            
 
         def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
             _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
@@ -211,6 +239,9 @@ class Clustergram:
             group_to_color: dict[str, Color],
             default_color: str = "#000000",
             is_vertical: bool = False,
+            colorbar_ypos: float = 0,
+            colorbar_size: float = 1,
+            legend_title: str = "Group",
         ):
             """
             Creates a trace used for group markers.
@@ -255,10 +286,13 @@ class Clustergram:
                 zmax=amount_of_groups,
                 colorscale=colorscale,
                 colorbar=dict(
-                    title="Groups",
+                    title=legend_title,
                     tickvals=[i + 0.5 for i in range(amount_of_groups)],
                     ticktext=all_groups,
                     tickmode="array",
+                    x=0.93,
+                    y=colorbar_ypos,
+                    len=colorbar_size,
                 ),
                 hoverinfo="text",
                 text=data_labels,
@@ -277,6 +311,9 @@ class Clustergram:
             self.permuted_column_labels,
             self.column_group_mapping,
             test_color_map,
+            colorbar_size=1/2,
+            colorbar_ypos=0.75,
+            legend_title=column_groups_legend_title,
         )
 
         _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
@@ -287,6 +324,9 @@ class Clustergram:
             self.row_group_mapping,
             test_color_map,
             is_vertical=True,
+            colorbar_size=1/2,
+            colorbar_ypos=0.25,
+            legend_title=row_groups_legend_title,
         )
 
         _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)

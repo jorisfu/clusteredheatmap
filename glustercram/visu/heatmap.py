@@ -49,7 +49,6 @@ def heatmap(
             title=heatmap_legend_title,
             yanchor="bottom",
             y=0.0,
-            # len=1 / self.colorbar_count,
             # tickmode="array",
             # tickvals=(zmin, target_data_midpoint, zmax),
         ),
