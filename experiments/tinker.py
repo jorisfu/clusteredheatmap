@@ -40,16 +40,21 @@ c = Clustergram(
     significant_proteins,
     "nan_euclidean",
     "complete",
-    column_group_mapping={"P10": "CTL", "P11": "CTL", "P3": "AD"},
-    row_group_mapping={
+    column_group_mappings=
+    {"Group": 
+    {"P10": "CTL", "P11": "CTL", "P3": "AD"}
+    },
+    row_group_mappings=
+    {"Protgroup":
+    {
         "A3KMH1-3": "Cool Proteins", 
         "A6NHQ2": "Cool Proteins", 
         "Q9Y6R0": "Uncool Proteins",
         "P09382": "Uncool Proteins",
-    },
+    }}
 )
 
-_ = c.get_visualization_plotly(
+fig = c.get_visualization_plotly(
     heatmap_kwargs={
         "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
         "zmin": -2.5,
@@ -57,3 +62,5 @@ _ = c.get_visualization_plotly(
         "zmax": 3.5,
     }
 )
+
+fig.show()

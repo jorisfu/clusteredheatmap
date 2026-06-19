@@ -32,8 +32,8 @@ class Clustergram:
         data: pd.DataFrame,
         distance: DistFunName | DistFun,
         linkage: LinkageFunName | LinkageFun,
-        column_group_mapping: dict[str, str] | None = None,
-        row_group_mapping: dict[str, str] | None = None,
+        column_group_mappings: dict[str, dict[str, str]] | None = None,
+        row_group_mappings: dict[str, dict[str, str]] | None = None,
     ) -> None:
         """
         Computes the necessary data for a clustered heatmap.
@@ -45,8 +45,12 @@ class Clustergram:
             Custom distance functions must be compatible with [[TODO: Signature]]
         :param linkage: The name of the linkage function to use or a custom linkage function.
             Custom linkage functions must be compatible with [[TODO: Signature]]
-        :param column_group_mapping: Dict mapping columns to groups
-        :param row_group_mapping: Dict mapping columns to groups
+        :param column_group_mappings: Dicts mapping column labels to groups.
+            Multiple mappings are supported, each key in this dict gets used as the respecitve
+            mapping's label.
+        :param row_group_mappings: Dicts mapping row labels to groups.
+            Multiple mappings are supported, each key in this dict gets used as the respecitve
+            mapping's label.
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
@@ -83,12 +87,8 @@ class Clustergram:
             self.data.index[int(i)] for i in rows_permutation
         ]
 
-        self.column_group_mapping: dict[str, str] = (
-            column_group_mapping if column_group_mapping is not None else dict()
-        )
-        self.row_group_mapping: dict[str, str] = (
-            row_group_mapping if row_group_mapping is not None else dict()
-        )
+        self.column_group_mappings: dict[str, dict[str, str]] | None = column_group_mappings
+        self.row_group_mappings: dict[str, dict[str, str]] | None = row_group_mappings
 
     def get_visualization_plotly(
         self,
@@ -144,9 +144,12 @@ class Clustergram:
             "rowspan": 2,
         }  # Heatmap
 
+        COL_GM_HEIGHT = 2 if self.column_group_mappings is not None else 0
+        ROW_GM_HEIGHT = 2 if self.row_group_mappings is not None else 0
+
         # Layout ratios
-        Y_LAYOUT_RATIOS = [30, 2, 80, 0][::-1]
-        X_LAYOUT_RATIOS = [30, 2, 80, 10]
+        Y_LAYOUT_RATIOS = [30, COL_GM_HEIGHT, 80, 0][::-1]
+        X_LAYOUT_RATIOS = [30, ROW_GM_HEIGHT, 80, 10]
 
         def get_layout_domain_ratios(custom_ratios: list[int]) -> list[list[float]]:
             normalized_ratios: list[float] = [i / sum(custom_ratios) for i in custom_ratios]
@@ -307,32 +310,35 @@ class Clustergram:
             "Cool Proteins": "#FCE300",
         }
 
-        column_gm_map = create_group_marker_trace(
-            self.permuted_column_labels,
-            self.column_group_mapping,
-            test_color_map,
-            colorbar_size=1/2,
-            colorbar_ypos=0.75,
-            legend_title=column_groups_legend_title,
-        )
+        if self.column_group_mappings is not None:
+            for label, mapping in self.column_group_mappings.items():
+                column_gm_map = create_group_marker_trace(
+                    self.permuted_column_labels,
+                    mapping,
+                    test_color_map,
+                    colorbar_size=1/2,
+                    colorbar_ypos=0.75,
+                    legend_title=label,
+                )
+                _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
 
-        _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
         update_xyaxes(fig, COL_GM_POS, visible=False)
 
-        row_gm_map = create_group_marker_trace(
-            self.permuted_row_labels,
-            self.row_group_mapping,
-            test_color_map,
-            is_vertical=True,
-            colorbar_size=1/2,
-            colorbar_ypos=0.25,
-            legend_title=row_groups_legend_title,
-        )
+        if self.row_group_mappings is not None:
+            for label, mapping in self.row_group_mappings.items():
+                row_gm_map = create_group_marker_trace(
+                    self.permuted_row_labels,
+                    mapping,
+                    test_color_map,
+                    is_vertical=True,
+                    colorbar_size=1/2,
+                    colorbar_ypos=0.25,
+                    legend_title=label,
+                )
 
-        _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
+                _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
         update_xyaxes(fig, ROW_GM_POS, visible=False)
 
         _ = fig.update_layout(plot_bgcolor=plot_bgcolor, showlegend=False)
 
-        fig.show()
         return fig
