@@ -33,6 +33,8 @@ def heatmap(
     *,
     nan_color: Color | None = None,
     heatmap_legend_title: str = "",
+    colorbar_size: float = 1.0,
+    colorbar_ypos: float = 0.0,
     **kwargs
 ):
     """
@@ -48,7 +50,8 @@ def heatmap(
         colorbar=dict(
             title=heatmap_legend_title,
             yanchor="bottom",
-            y=0.0,
+            y=colorbar_ypos,
+            len=colorbar_size,
             # tickmode="array",
             # tickvals=(zmin, target_data_midpoint, zmax),
         ),

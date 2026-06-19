@@ -1,5 +1,6 @@
 # pyright: reportExplicitAny=false
 
+from multiprocessing import current_process
 from typing import Any
 
 from plotly.graph_objs import Figure
@@ -24,6 +25,15 @@ import scipy
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 from plotly import subplots
+
+class Counter:
+    def __init__(self) -> None:
+        self.value: int = 0
+
+    def next(self) -> int:
+        tmp = self.value
+        self.value += 1
+        return tmp
 
 
 class Clustergram:
@@ -87,8 +97,12 @@ class Clustergram:
             self.data.index[int(i)] for i in rows_permutation
         ]
 
-        self.column_group_mappings: dict[str, dict[str, str]] | None = column_group_mappings
-        self.row_group_mappings: dict[str, dict[str, str]] | None = row_group_mappings
+        self.column_group_mappings: dict[str, dict[str, str]] = (
+            column_group_mappings if column_group_mappings is not None else dict()
+        )
+        self.row_group_mappings: dict[str, dict[str, str]] = (
+            row_group_mappings if row_group_mappings is not None else dict()
+        )
 
     def get_visualization_plotly(
         self,
@@ -97,8 +111,6 @@ class Clustergram:
         heatmap_legend_title: str = "Heatmap legend",
         heatmap_nan_color: Color = "#000000",
         heatmap_kwargs: dict[str, Any] | None = None,
-        column_groups_legend_title: str = "Column Groups",
-        row_groups_legend_title: str = "Row Groups",
     ):
         """
         Returns the computed clustergram as a plotly figure.
@@ -144,15 +156,27 @@ class Clustergram:
             "rowspan": 2,
         }  # Heatmap
 
-        COL_GM_HEIGHT = 2 if self.column_group_mappings is not None else 0
-        ROW_GM_HEIGHT = 2 if self.row_group_mappings is not None else 0
+        COL_GM_HEIGHT = 2 if self.column_group_mappings else 0
+        ROW_GM_HEIGHT = 2 if self.row_group_mappings else 0
 
         # Layout ratios
         Y_LAYOUT_RATIOS = [30, COL_GM_HEIGHT, 80, 0][::-1]
-        X_LAYOUT_RATIOS = [30, ROW_GM_HEIGHT, 80, 10]
+        X_LAYOUT_RATIOS = [30, ROW_GM_HEIGHT, 80, 0]
+
+        # Colorbar counters
+        # Since we're using multiple subplots that each generate colorbars,
+        # we need to globally track them to make layouting as dynamic as possible
+        colorbar_amount = 1 + len(self.row_group_mappings) + len(self.column_group_mappings)
+        colorbar_size = 1 / colorbar_amount
+        current_colorbar = Counter()
+    
+        def current_colorbar_ypos() -> float:
+            return current_colorbar.next()/colorbar_amount
 
         def get_layout_domain_ratios(custom_ratios: list[int]) -> list[list[float]]:
-            normalized_ratios: list[float] = [i / sum(custom_ratios) for i in custom_ratios]
+            normalized_ratios: list[float] = [
+                i / sum(custom_ratios) for i in custom_ratios
+            ]
             domains = []
 
             start = 0.0
@@ -177,9 +201,12 @@ class Clustergram:
         for row in range(rows):
             for col in range(cols):
                 if specs[row][col] is not None:
-                    _ = fig.update_yaxes(row=row+1, col=col+1, domain=y_domains[row])
-                    _ = fig.update_xaxes(row=row+1, col=col+1, domain=x_domains[col])
-            
+                    _ = fig.update_yaxes(
+                        row=row + 1, col=col + 1, domain=y_domains[row]
+                    )
+                    _ = fig.update_xaxes(
+                        row=row + 1, col=col + 1, domain=x_domains[col]
+                    )
 
         def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
             _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
@@ -199,6 +226,8 @@ class Clustergram:
                 self.permuted_data,
                 nan_color=heatmap_nan_color,
                 heatmap_legend_title=heatmap_legend_title,
+                colorbar_size=colorbar_size,
+                colorbar_ypos=current_colorbar_ypos(),
                 **(heatmap_kwargs or dict()),
             ),
             rows=[HEATMAP_POS.x] * 2,
@@ -242,8 +271,8 @@ class Clustergram:
             group_to_color: dict[str, Color],
             default_color: str = "#000000",
             is_vertical: bool = False,
-            colorbar_ypos: float = 0,
-            colorbar_size: float = 1,
+            colorbar_ypos: float = 0.0,
+            colorbar_size: float = 1.0,
             legend_title: str = "Group",
         ):
             """
@@ -293,8 +322,8 @@ class Clustergram:
                     tickvals=[i + 0.5 for i in range(amount_of_groups)],
                     ticktext=all_groups,
                     tickmode="array",
-                    x=0.93,
                     y=colorbar_ypos,
+                    yanchor="bottom",
                     len=colorbar_size,
                 ),
                 hoverinfo="text",
@@ -310,33 +339,32 @@ class Clustergram:
             "Cool Proteins": "#FCE300",
         }
 
-        if self.column_group_mappings is not None:
-            for label, mapping in self.column_group_mappings.items():
-                column_gm_map = create_group_marker_trace(
-                    self.permuted_column_labels,
-                    mapping,
-                    test_color_map,
-                    colorbar_size=1/2,
-                    colorbar_ypos=0.75,
-                    legend_title=label,
-                )
-                _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
+        for label, mapping in self.column_group_mappings.items():
+            column_gm_map = create_group_marker_trace(
+                self.permuted_column_labels,
+                mapping,
+                test_color_map,
+                colorbar_size=colorbar_size,
+                colorbar_ypos=current_colorbar_ypos(),
+                legend_title=label,
+            )
+            _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
 
         update_xyaxes(fig, COL_GM_POS, visible=False)
 
-        if self.row_group_mappings is not None:
-            for label, mapping in self.row_group_mappings.items():
-                row_gm_map = create_group_marker_trace(
-                    self.permuted_row_labels,
-                    mapping,
-                    test_color_map,
-                    is_vertical=True,
-                    colorbar_size=1/2,
-                    colorbar_ypos=0.25,
-                    legend_title=label,
-                )
+        for label, mapping in self.row_group_mappings.items():
+            row_gm_map = create_group_marker_trace(
+                self.permuted_row_labels,
+                mapping,
+                test_color_map,
+                is_vertical=True,
+                colorbar_size=colorbar_size,
+                colorbar_ypos=current_colorbar_ypos(),
+                legend_title=label,
+            )
 
-                _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
+            _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
+
         update_xyaxes(fig, ROW_GM_POS, visible=False)
 
         _ = fig.update_layout(plot_bgcolor=plot_bgcolor, showlegend=False)

@@ -40,18 +40,21 @@ c = Clustergram(
     significant_proteins,
     "nan_euclidean",
     "complete",
-    column_group_mappings=
-    {"Group": 
-    {"P10": "CTL", "P11": "CTL", "P3": "AD"}
+    column_group_mappings={"Group": {"P10": "CTL", "P11": "CTL", "P3": "AD"}},
+    row_group_mappings={
+        "Protgroup": {
+            "A3KMH1-3": "Cool Proteins",
+            "A6NHQ2": "Cool Proteins",
+            "Q9Y6R0": "Uncool Proteins",
+            "P09382": "Uncool Proteins",
+        },
+        "Coolness group": {
+            "A3KMH1-3": "Yoooo",
+            "A6NHQ2": "Noooo",
+            "Q9Y6R0": "AAAAAAAAAAAAAAAAAAAAA",
+            "P09382": "Yoooo",
+        }
     },
-    row_group_mappings=
-    {"Protgroup":
-    {
-        "A3KMH1-3": "Cool Proteins", 
-        "A6NHQ2": "Cool Proteins", 
-        "Q9Y6R0": "Uncool Proteins",
-        "P09382": "Uncool Proteins",
-    }}
 )
 
 fig = c.get_visualization_plotly(
