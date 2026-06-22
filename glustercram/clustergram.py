@@ -167,8 +167,8 @@ class Clustergram:
             "rowspan": 2,
         }  # Heatmap
 
-        COL_GM_HEIGHT = 2 * len(self.column_group_mappings)
-        ROW_GM_HEIGHT = 2 * len(self.row_group_mappings)
+        COL_GM_HEIGHT = 5 * len(self.column_group_mappings)
+        ROW_GM_HEIGHT = 5 * len(self.row_group_mappings)
 
         # Layout ratios
         Y_LAYOUT_RATIOS = [30, COL_GM_HEIGHT, 80, 0][::-1]
@@ -330,6 +330,7 @@ class Clustergram:
             colorbar_ypos: float = 0.0,
             colorbar_size: float = 1.0,
             legend_title: str = "Group",
+            axis_title: str = "Axis value",
             group_no: int = 0,
             groups_on_axis: int = 1,
         ):
@@ -355,13 +356,26 @@ class Clustergram:
             }
 
             data_as_groups = [label_to_group.get(label) for label in data_labels]
+
             data_as_z_values = np.full([groups_on_axis, len(data_labels)], np.nan)
             data_as_z_values[group_no] = np.array(
                 [[group_to_z.get(group, np.nan) for group in data_as_groups]]
             )
 
+            group_label_matrix = [[""] * len(data_labels)] * groups_on_axis
+            group_label_matrix[group_no] = [l or "" for l in data_as_groups]
+            group_label_matrix = np.array(group_label_matrix)
+
+            data_label_matrix = [[""] * len(data_labels)] * groups_on_axis
+            data_label_matrix[group_no] = data_labels
+            data_label_matrix = np.array(data_label_matrix)
+
             if is_vertical:
                 data_as_z_values = data_as_z_values.transpose()
+                group_label_matrix = group_label_matrix.transpose()
+                data_label_matrix = data_label_matrix.transpose()
+
+            custom_data = np.dstack((data_label_matrix, group_label_matrix))
 
             colorscale = [(0.0, default_color)]
             for idx, group in enumerate(all_groups):
@@ -385,9 +399,10 @@ class Clustergram:
                     yanchor="bottom",
                     len=colorbar_size,
                 ),
-                hoverinfo="text",
+                customdata=custom_data,
                 text=data_labels,
-                hovertemplate="Index: %{x}<br>Group: %{text}<extra></extra>",
+                hovertemplate=f"{axis_title} %{{customdata[0]}}<br>{legend_title}: %{{customdata[1]}}<br><extra></extra>",
+                hoverongaps=False,
             )
 
             return trace
@@ -400,7 +415,8 @@ class Clustergram:
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
                 group_no=idx,
-                groups_on_axis=len(self.column_group_mappings)
+                groups_on_axis=len(self.column_group_mappings),
+                axis_title=column_title,
             )
             _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
 
@@ -415,7 +431,8 @@ class Clustergram:
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
                 group_no=idx,
-                groups_on_axis=len(self.row_group_mappings)
+                groups_on_axis=len(self.row_group_mappings),
+                axis_title=row_title,
             )
 
             _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
