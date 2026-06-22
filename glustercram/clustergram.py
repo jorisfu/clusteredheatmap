@@ -23,6 +23,7 @@ import numpy as np
 import scipy
 
 import plotly.graph_objects as go
+import plotly.express as px
 import plotly.figure_factory as ff
 from plotly import subplots
 
@@ -111,6 +112,7 @@ class Clustergram:
         heatmap_legend_title: str = "Heatmap legend",
         heatmap_nan_color: Color = "#000000",
         heatmap_kwargs: dict[str, Any] | None = None,
+        group_marker_colors: list[Color] = px.colors.qualitative.Bold,
     ):
         """
         Returns the computed clustergram as a plotly figure.
@@ -121,6 +123,13 @@ class Clustergram:
         :param heatmap_nan_color: Color for heatmap cells corresponsing to NaN values
         :param heatmap_kwargs: additional kwargs passed to go.Heatmap
         """
+
+        # Input validation
+
+        # We need at least as many colors as groups
+        # TODO: This is wrong, we need to count total no of groups
+        if len(group_marker_colors) < len(self.column_group_mappings) + len(self.row_group_mappings):
+            raise ValueError(f"Too few colors specified in group_marker_colors")
 
         # GM = Group Marker
         # [empty]      [empty]     [col. dendro] [col. dendro]
@@ -156,8 +165,8 @@ class Clustergram:
             "rowspan": 2,
         }  # Heatmap
 
-        COL_GM_HEIGHT = 2 if self.column_group_mappings else 0
-        ROW_GM_HEIGHT = 2 if self.row_group_mappings else 0
+        COL_GM_HEIGHT = 2 * len(self.column_group_mappings)
+        ROW_GM_HEIGHT = 2 * len(self.row_group_mappings)
 
         # Layout ratios
         Y_LAYOUT_RATIOS = [30, COL_GM_HEIGHT, 80, 0][::-1]
@@ -265,10 +274,10 @@ class Clustergram:
         update_xyaxes(fig, ROW_DENDRO_POS, **dendro_axes_layout)
 
         ## GROUP MARKERS
+        gm_colorgen = iter(group_marker_colors)
         def create_group_marker_trace(
             data_labels: list[str],
             label_to_group: dict[str, str],
-            group_to_color: dict[str, Color],
             default_color: str = "#000000",
             is_vertical: bool = False,
             colorbar_ypos: float = 0.0,
@@ -309,7 +318,7 @@ class Clustergram:
 
             colorscale = [(0.0, default_color)]
             for idx, group in enumerate(all_groups):
-                color = group_to_color.get(group, default_color)
+                color = next(gm_colorgen)
                 # Imitate discrete scale by using thresholds of size 0.0
                 step_low = idx / amount_of_groups
                 step_high = (idx + 1) / amount_of_groups
@@ -336,17 +345,10 @@ class Clustergram:
 
             return trace
 
-        test_color_map = {
-            "CTL": "#ff0000",
-            "AD": "#f000f0",
-            "Cool Proteins": "#FCE300",
-        }
-
         for idx, (label, mapping) in enumerate(self.column_group_mappings.items()):
             column_gm_map = create_group_marker_trace(
                 self.permuted_column_labels,
                 mapping,
-                test_color_map,
                 colorbar_size=colorbar_size,
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
@@ -361,13 +363,12 @@ class Clustergram:
             row_gm_map = create_group_marker_trace(
                 self.permuted_row_labels,
                 mapping,
-                test_color_map,
                 is_vertical=True,
                 colorbar_size=colorbar_size,
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
                 group_no=idx,
-                groups_on_axis=len(self.column_group_mappings)
+                groups_on_axis=len(self.row_group_mappings)
             )
 
             _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
