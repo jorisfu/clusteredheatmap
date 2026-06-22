@@ -55,6 +55,7 @@ def heatmap(
             # tickmode="array",
             # tickvals=(zmin, target_data_midpoint, zmax),
         ),
+        hovertemplate="%{x} <extra></extra>",
         **kwargs  # pyright: ignore[reportUnknownArgumentType]
     )
 

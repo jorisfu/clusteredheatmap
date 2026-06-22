@@ -108,6 +108,8 @@ class Clustergram:
     def get_visualization_plotly(
         self,
         *,
+        column_title: str = "Column",
+        row_title: str = "Row",
         plot_bgcolor: str = "white",
         heatmap_legend_title: str = "Heatmap legend",
         heatmap_nan_color: Color = "#000000",
@@ -229,18 +231,63 @@ class Clustergram:
             )
 
         ## HEATMAP
+        def generate_background_map(data: HeatmapMatrix, nan_color: Color) -> go.Heatmap:
+            """
+            Generates a heatmap with the same dimensions as the primary heatmap but fills
+            all cells with the same color. Used to properly visualize NaN values.
+            Right now the only way to visualize NaNs in plotly heatmaps, see https://codepen.io/etpinard/pen/xVoJoj
+            Also see https://github.com/plotly/plotly.js/issues/7817
 
-        _ = fig.add_traces(
-            heatmap(
-                self.permuted_data,
-                nan_color=heatmap_nan_color,
-                heatmap_legend_title=heatmap_legend_title,
-                colorbar_size=colorbar_size,
-                colorbar_ypos=current_colorbar_ypos(),
-                **(heatmap_kwargs or dict()),
+            :param data: the primary reference data used for the actual heatmap
+            :param nan_color: the color of the background cells (visible for NaN cells in the primary heatmap)
+
+            :return: go.Heatmap object
+            """
+
+            background_data = data.copy()
+            background_data.fill(0)
+
+            background_map = go.Heatmap(
+                z=background_data,
+                colorscale=[(0.0, nan_color), (1.0, nan_color)],
+                showscale=False,
+            )
+
+            return background_map
+
+        if heatmap_nan_color is not None:
+            background_map = generate_background_map(self.permuted_data, heatmap_nan_color)
+            _ = fig.add_trace(background_map, HEATMAP_POS.x, HEATMAP_POS.y)
+
+        # TODO: Generalise this and cast all groupings
+        col_label_matrix = np.broadcast_to(self.permuted_column_labels, self.permuted_data.shape)
+        row_label_matrix = np.broadcast_to(np.array(self.permuted_row_labels)[:, None], self.permuted_data.shape)
+
+        # custom_data[:, :, 0] will be columns, custom_data[:, :, 1] will be rows
+        custom_data = np.dstack((col_label_matrix, row_label_matrix))
+
+        heatmap = go.Heatmap(
+            # x=self.permuted_column_labels,
+            # y=self.permuted_row_labels,
+            z=self.permuted_data,
+            colorbar=dict(
+                title=heatmap_legend_title,
+                yanchor="bottom",
+                y=current_colorbar_ypos(),
+                len=colorbar_size,
+                # tickmode="array",
+                # tickvals=(zmin, target_data_midpoint, zmax),
             ),
-            rows=[HEATMAP_POS.x] * 2,
-            cols=[HEATMAP_POS.y] * 2,
+            customdata=custom_data,
+            hovertemplate=f"{column_title}: %{{customdata[0]}}<br>{row_title}: %{{customdata[1]}} <extra></extra>",
+            **heatmap_kwargs,
+        )
+
+
+        _ = fig.add_trace(
+            heatmap,
+            row=HEATMAP_POS.x,
+            col=HEATMAP_POS.y,
         )
 
         update_xyaxes(fig, HEATMAP_POS, showticklabels=False)

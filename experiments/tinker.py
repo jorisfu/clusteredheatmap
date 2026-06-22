@@ -61,6 +61,8 @@ c = Clustergram(
 )
 
 fig = c.get_visualization_plotly(
+    column_title="Sample",
+    row_title="Protein",
     heatmap_kwargs={
         "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
         "zmin": -2.5,
