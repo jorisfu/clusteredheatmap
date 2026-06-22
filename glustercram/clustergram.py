@@ -274,6 +274,8 @@ class Clustergram:
             colorbar_ypos: float = 0.0,
             colorbar_size: float = 1.0,
             legend_title: str = "Group",
+            group_no: int = 0,
+            groups_on_axis: int = 1,
         ):
             """
             Creates a trace used for group markers.
@@ -297,7 +299,8 @@ class Clustergram:
             }
 
             data_as_groups = [label_to_group.get(label) for label in data_labels]
-            data_as_z_values = np.array(
+            data_as_z_values = np.full([groups_on_axis, len(data_labels)], np.nan)
+            data_as_z_values[group_no] = np.array(
                 [[group_to_z.get(group, np.nan) for group in data_as_groups]]
             )
 
@@ -339,7 +342,7 @@ class Clustergram:
             "Cool Proteins": "#FCE300",
         }
 
-        for label, mapping in self.column_group_mappings.items():
+        for idx, (label, mapping) in enumerate(self.column_group_mappings.items()):
             column_gm_map = create_group_marker_trace(
                 self.permuted_column_labels,
                 mapping,
@@ -347,12 +350,14 @@ class Clustergram:
                 colorbar_size=colorbar_size,
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
+                group_no=idx,
+                groups_on_axis=len(self.column_group_mappings)
             )
             _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
 
         update_xyaxes(fig, COL_GM_POS, visible=False)
 
-        for label, mapping in self.row_group_mappings.items():
+        for idx, (label, mapping) in enumerate(self.row_group_mappings.items()):
             row_gm_map = create_group_marker_trace(
                 self.permuted_row_labels,
                 mapping,
@@ -361,6 +366,8 @@ class Clustergram:
                 colorbar_size=colorbar_size,
                 colorbar_ypos=current_colorbar_ypos(),
                 legend_title=label,
+                group_no=idx,
+                groups_on_axis=len(self.column_group_mappings)
             )
 
             _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)

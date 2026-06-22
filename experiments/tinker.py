@@ -40,7 +40,10 @@ c = Clustergram(
     significant_proteins,
     "nan_euclidean",
     "complete",
-    column_group_mappings={"Group": {"P10": "CTL", "P11": "CTL", "P3": "AD"}},
+    column_group_mappings={
+        "Group": {"P10": "CTL", "P11": "CTL", "P3": "AD"},
+        "Age": {"P10": "<65", "P11": ">65", "P3": "<65", "P4": ">65"},
+    },
     row_group_mappings={
         "Protgroup": {
             "A3KMH1-3": "Cool Proteins",
