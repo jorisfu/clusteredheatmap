@@ -51,12 +51,12 @@ c = Clustergram(
             "Q9Y6R0": "Uncool Proteins",
             "P09382": "Uncool Proteins",
         },
-        # "Coolness group": {
-        #     "A3KMH1-3": "Yoooo",
-        #     "A6NHQ2": "Noooo",
-        #     "Q9Y6R0": "AAAAAAAAAAAAAAAAAAAAA",
-        #     "P09382": "Yoooo",
-        # }
+        "Coolness group": {
+            "A3KMH1-3": "Yoooo",
+            "A6NHQ2": "Noooo",
+            "Q9Y6R0": "AAAAAAAAAAAAAAAAAAAAA",
+            "P09382": "Yoooo",
+        },
     },
 )
 
@@ -68,7 +68,7 @@ fig = c.get_visualization_plotly(
         "zmin": -2.5,
         "zmid": 0,
         "zmax": 3.5,
-    }
+    },
 )
 
 fig.show()
