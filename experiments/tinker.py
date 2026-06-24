@@ -9,7 +9,7 @@ sys.path.append(parent)
 import numpy as np
 import pandas as pd
 
-from glustercram.clustergram import Clustergram
+from glustercram.clustergram import ClusteredHeatMap
 from glustercram.types import Vector
 
 from glustercram.algos import distance, linkage
@@ -36,7 +36,7 @@ significant_proteins = significant_proteins.pivot(
 ).T
 
 
-c = Clustergram(
+c = ClusteredHeatMap(
     significant_proteins,
     "nan_euclidean",
     "complete",
@@ -58,11 +58,11 @@ c = Clustergram(
             "P09382": "Yoooo",
         },
     },
+    data_column_title="Sample",
+    data_row_title="Sample",
 )
 
 fig = c.get_visualization_plotly(
-    column_title="Sample",
-    row_title="Protein",
     heatmap_kwargs={
         "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
         "zmin": -2.5,

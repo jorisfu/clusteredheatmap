@@ -25,5 +25,5 @@ Color = str
 
 
 class LayoutPoint(NamedTuple):
-    x: int
-    y: int
+    row: int
+    col: int

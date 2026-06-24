@@ -38,7 +38,7 @@ class Counter:
         return tmp
 
 
-class Clustergram:
+class ClusteredHeatMap:
     def __init__(
         self,
         data: pd.DataFrame,
@@ -46,6 +46,9 @@ class Clustergram:
         linkage: LinkageFunName | LinkageFun,
         column_group_mappings: dict[str, dict[str, str]] | None = None,
         row_group_mappings: dict[str, dict[str, str]] | None = None,
+        data_column_title: str = "Column",
+        data_row_title: str = "Row",
+        data_z_title: str = "Intensity",
     ) -> None:
         """
         Computes the necessary data for a clustered heatmap.
@@ -106,13 +109,14 @@ class Clustergram:
             row_group_mappings if row_group_mappings is not None else dict()
         )
 
+        self.data_row_title: str = data_row_title
+        self.data_column_title: str = data_column_title
+        self.data_z_title: str = data_z_title
+
     def get_visualization_plotly(
         self,
         *,
-        column_title: str = "Column",
-        row_title: str = "Row",
         plot_bgcolor: str = "white",
-        zaxis_title: str = "Intensity",
         heatmap_nan_color: Color = "#000000",
         heatmap_kwargs: dict[str, Any] | None = None,
         group_marker_colors: list[Color] = px.colors.qualitative.Bold,
@@ -122,7 +126,6 @@ class Clustergram:
         This function is based off the PROTzilla implementation of the Dash Bio clustergram
         but has been heavily refactored and adjusted
 
-        :param zaxis_title: Title for the heatmap legend shown above the color bar
         :param heatmap_nan_color: Color for heatmap cells corresponsing to NaN values
         :param heatmap_kwargs: additional kwargs passed to go.Heatmap
         """
@@ -155,17 +158,19 @@ class Clustergram:
         ROW_GM_POS = LayoutPoint(3, 2)
         HEATMAP_POS = LayoutPoint(3, 3)
 
-        specs[COL_DENDRO_POS.x - 1][COL_DENDRO_POS.y - 1] = {
+        specs[COL_DENDRO_POS.row - 1][COL_DENDRO_POS.col - 1] = {
             "colspan": 2
         }  # Column Dendrogram
-        specs[ROW_DENDRO_POS.x - 1][ROW_DENDRO_POS.y - 1] = {
+        specs[ROW_DENDRO_POS.row - 1][ROW_DENDRO_POS.col - 1] = {
             "rowspan": 2
         }  # Row Dendrogram
-        specs[COL_GM_POS.x - 1][COL_GM_POS.y - 1] = {
+        specs[COL_GM_POS.row - 1][COL_GM_POS.col - 1] = {
             "colspan": 2
         }  # Column Group Markers
-        specs[ROW_GM_POS.x - 1][ROW_GM_POS.y - 1] = {"rowspan": 2}  # Row Group Markers
-        specs[HEATMAP_POS.x - 1][HEATMAP_POS.y - 1] = {
+        specs[ROW_GM_POS.row - 1][ROW_GM_POS.col - 1] = {
+            "rowspan": 2
+        }  # Row Group Markers
+        specs[HEATMAP_POS.row - 1][HEATMAP_POS.col - 1] = {
             "colspan": 2,
             "rowspan": 2,
         }  # Heatmap
@@ -225,14 +230,14 @@ class Clustergram:
                     )
 
         def update_xyaxes(fig: Figure, subplot_pos: LayoutPoint, **kwargs):
-            _ = fig.update_xaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
-            _ = fig.update_yaxes(row=subplot_pos.x, col=subplot_pos.y, **kwargs)
+            _ = fig.update_xaxes(row=subplot_pos.row, col=subplot_pos.col, **kwargs)
+            _ = fig.update_yaxes(row=subplot_pos.row, col=subplot_pos.col, **kwargs)
 
         def add_tracelist(fig: Figure, subplot_pos: LayoutPoint, traces: list):
             _ = fig.add_traces(
                 traces,
-                rows=[subplot_pos.x] * len(traces),
-                cols=[subplot_pos.y] * len(traces),
+                rows=[subplot_pos.row] * len(traces),
+                cols=[subplot_pos.col] * len(traces),
             )
 
         ## HEATMAP
@@ -266,7 +271,7 @@ class Clustergram:
             background_map = generate_background_map(
                 self.permuted_data, heatmap_nan_color
             )
-            _ = fig.add_trace(background_map, HEATMAP_POS.x, HEATMAP_POS.y)
+            _ = fig.add_trace(background_map, HEATMAP_POS.row, HEATMAP_POS.col)
 
         # TODO: Generalise this and cast all groupings
         col_label_matrix = np.broadcast_to(
@@ -282,7 +287,7 @@ class Clustergram:
         heatmap = go.Heatmap(
             z=self.permuted_data,
             colorbar=dict(
-                title=zaxis_title,
+                title=self.data_z_title,
                 yanchor="bottom",
                 y=current_colorbar_ypos(),
                 len=colorbar_size,
@@ -290,19 +295,27 @@ class Clustergram:
                 # tickvals=(zmin, target_data_midpoint, zmax),
             ),
             customdata=custom_data,
-            hovertemplate=f"{column_title}: %{{customdata[0]}}<br>{row_title}: %{{customdata[1]}}<br>{zaxis_title}: %{{z}} <extra></extra>",
+            hovertemplate=f"{self.data_column_title}: %{{customdata[0]}}<br>{self.data_row_title}: %{{customdata[1]}}<br>{self.data_z_title}: %{{z}} <extra></extra>",
             **heatmap_kwargs,
         )
 
         _ = fig.add_trace(
             heatmap,
-            row=HEATMAP_POS.x,
-            col=HEATMAP_POS.y,
+            row=HEATMAP_POS.row,
+            col=HEATMAP_POS.col,
         )
 
         update_xyaxes(fig, HEATMAP_POS, showticklabels=False)
-        _ = fig.update_xaxes(row=HEATMAP_POS.x, col=HEATMAP_POS.y, range=[-0.5, len(self.permuted_column_labels) - 0.5])
-        _ = fig.update_yaxes(row=HEATMAP_POS.x, col=HEATMAP_POS.y, range=[-0.5, len(self.permuted_row_labels) - 0.5])
+        _ = fig.update_xaxes(
+            row=HEATMAP_POS.row,
+            col=HEATMAP_POS.col,
+            range=[-0.5, len(self.permuted_column_labels) - 0.5],
+        )
+        _ = fig.update_yaxes(
+            row=HEATMAP_POS.row,
+            col=HEATMAP_POS.col,
+            range=[-0.5, len(self.permuted_row_labels) - 0.5],
+        )
 
         ## DENDROGRAMS
 
@@ -439,9 +452,9 @@ class Clustergram:
                 legend_title=label,
                 group_no=idx,
                 groups_on_axis=len(self.column_group_mappings),
-                axis_title=column_title,
+                axis_title=self.data_column_title,
             )
-            _ = fig.add_trace(column_gm_map, row=COL_GM_POS.x, col=COL_GM_POS.y)
+            _ = fig.add_trace(column_gm_map, row=COL_GM_POS.row, col=COL_GM_POS.col)
 
         update_xyaxes(fig, COL_GM_POS, visible=False)
 
@@ -455,10 +468,10 @@ class Clustergram:
                 legend_title=label,
                 group_no=idx,
                 groups_on_axis=len(self.row_group_mappings),
-                axis_title=row_title,
+                axis_title=self.data_row_title,
             )
 
-            _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
+            _ = fig.add_trace(row_gm_map, row=ROW_GM_POS.row, col=ROW_GM_POS.col)
 
         update_xyaxes(fig, ROW_GM_POS, visible=False)
 
@@ -466,15 +479,23 @@ class Clustergram:
 
         ## AXIS SYNCING
         heatmap_x_id = next(
-            fig.select_xaxes(row=HEATMAP_POS.x, col=HEATMAP_POS.y)
+            fig.select_xaxes(row=HEATMAP_POS.row, col=HEATMAP_POS.col)
         ).plotly_name.replace("axis", "")
         heatmap_y_id = next(
-            fig.select_yaxes(row=HEATMAP_POS.x, col=HEATMAP_POS.y)
+            fig.select_yaxes(row=HEATMAP_POS.row, col=HEATMAP_POS.col)
         ).plotly_name.replace("axis", "")
 
-        _ = fig.update_xaxes(matches=heatmap_x_id, row=COL_GM_POS.x, col=COL_GM_POS.y)
-        _ = fig.update_yaxes(matches=heatmap_y_id, row=ROW_GM_POS.x, col=ROW_GM_POS.y)
-        _ = fig.update_xaxes(matches=heatmap_x_id, row=COL_DENDRO_POS.x, col=COL_DENDRO_POS.y)
-        _ = fig.update_yaxes(matches=heatmap_y_id, row=ROW_DENDRO_POS.x, col=ROW_DENDRO_POS.y)
+        _ = fig.update_xaxes(
+            matches=heatmap_x_id, row=COL_GM_POS.row, col=COL_GM_POS.col
+        )
+        _ = fig.update_yaxes(
+            matches=heatmap_y_id, row=ROW_GM_POS.row, col=ROW_GM_POS.col
+        )
+        _ = fig.update_xaxes(
+            matches=heatmap_x_id, row=COL_DENDRO_POS.row, col=COL_DENDRO_POS.col
+        )
+        _ = fig.update_yaxes(
+            matches=heatmap_y_id, row=ROW_DENDRO_POS.row, col=ROW_DENDRO_POS.col
+        )
 
         return fig
