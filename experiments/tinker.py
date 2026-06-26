@@ -61,7 +61,7 @@ c = ClusteredHeatMap(
         },
     },
     data_column_title="Sample",
-    data_row_title="Sample",
+    data_row_title="Protein",
 )
 
 # fig = c.get_visualization_plotly(
@@ -75,11 +75,13 @@ c = ClusteredHeatMap(
 #
 # fig.show()
 
-b = PlotlyVisuBuilder(c, vertical_layout="hgd", horizontal_layout="ghd")
-b.add_heatmap()
-b.add_col_dendrogram()
-b.add_row_dendrogram()
-b.add_col_group_markers()
-b.add_row_group_markers()
+# b = PlotlyVisuBuilder(c, vertical_layout="hgd", horizontal_layout="ghd")
+# b.add_heatmap()
+# b.add_col_dendrogram()
+# b.add_row_dendrogram()
+# b.add_col_group_markers()
+# b.add_row_group_markers()
+# b.get_figure().show()
 
-b.get_figure().show()
+fig = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh").autobuild()
+fig.show()

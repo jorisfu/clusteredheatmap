@@ -36,6 +36,8 @@ DENDRO_AXES_LAYOUT = {
     "showticklabels": False,
 }
 
+DEFAULT_HEATMAP_COLORSCALE = [(0.0, "#FF0000"), (0.5, "#FFFFFF"), (1.0, "#0000FF")]
+
 class PlotlyVisuBuilder:
     def _validate_layout_string(self, s: str) -> None:
         if len(s) == 0:
@@ -200,6 +202,32 @@ class PlotlyVisuBuilder:
         self._relative_subplot_widths: dict[SubplotType, int] = dict()
         self._relative_subplot_heights: dict[SubplotType, int] = dict()
 
+    def autobuild(self) -> Figure:
+        """
+        Automatically builds a clustered heatmap visualization using sane defaults.
+        """
+        self.add_heatmap()
+
+        for char in self.vertical_layout:
+            match char:
+                case 'd':
+                    self.add_col_dendrogram()
+                case 'g':
+                    self.add_col_group_markers()
+                case _:
+                    pass
+
+        for char in self.horizontal_layout:
+            match char:
+                case 'd':
+                    self.add_row_dendrogram()
+                case 'g':
+                    self.add_row_group_markers()
+                case _:
+                    pass
+
+        return self.get_figure()
+
     def _colorbar_position_generator(self, total_amount: int):
         for i in range(total_amount):
             yield i / total_amount
@@ -263,12 +291,23 @@ class PlotlyVisuBuilder:
         self._apply_display_ratios()
         return self.fig
 
+    def _build_asymmetric_colorscale(self, colorscale: str | list[tuple[float, Color]], zmin: float, zmax: float, zmid: float):
+        """
+        TODO copy from what i did in protzilla
+        """
+        return colorscale, 0.5
+
     # TODO: Colorscale issues and asymmetric colorscale, see pz implementation
     def add_heatmap(
         self,
-        nan_color: Color = "#000000",
+        *,
         relative_width: int = 80,
         relative_height: int = 80,
+        nan_color: Color = "#000000",
+        colorscale: str | list[tuple[float, Color]] | None = None,
+        zmin: float | None = None,
+        zmax: float | None = None,
+        zmid: float | None = None,
     ) -> None:
         def generate_background_map(
             data: HeatmapMatrix, nan_color: Color
@@ -298,11 +337,29 @@ class PlotlyVisuBuilder:
 
         target_position = self.subplot_positions[SubplotType.HEATMAP]
 
+        ## Colorscale calculation
+        if zmin is None:
+            zmin = float(self.chm.permuted_data.min())
+
+        if zmax is None:
+            zmax = float(self.chm.permuted_data.max())
+
+        if zmid is None:
+            zmid = np.average([zmin, zmax])
+
+        if colorscale is None:
+            colorscale = DEFAULT_HEATMAP_COLORSCALE
+
+        colorscale, data_midpoint_in_colorspace = self._build_asymmetric_colorscale(colorscale, zmin, zmax, zmid)
+
+        ## Background map for NaNs
         # TODO: Check here if we have nans in data
         if True:
             background_map = generate_background_map(self.chm.permuted_data, nan_color)
             self.helpers.add_trace(background_map, target_position)
 
+
+        ## Custom data for tooltip
         # TODO: Generalise this and cast all groupings
         # So we can get group info in tooltip?
         col_label_matrix = np.broadcast_to(
@@ -315,22 +372,23 @@ class PlotlyVisuBuilder:
         # custom_data[:, :, 0] will be columns, custom_data[:, :, 1] will be rows
         custom_data = np.dstack((col_label_matrix, row_label_matrix))
 
+
         heatmap = go.Heatmap(
             z=self.chm.permuted_data,
             colorbar=self._new_colorbar(
                 title=self.chm.data_z_title,
-                # tickmode="array",
-                # tickvals=(zmin, target_data_midpoint, zmax),
+                tickmode="array",
+                tickvals=(zmin, data_midpoint_in_colorspace, zmax),
             ),
-            colorscale=[[0.0, "#FF0000"], [0.5, "#FFFFFF"], [1.0, "#0000FF"]],
+            colorscale=colorscale,
             customdata=custom_data,
             hovertemplate=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: %{{z}} <extra></extra>",
         )
 
         self.helpers.add_trace(heatmap, target_position)
-
         self.helpers.update_xyaxes(target_position, showticklabels=False)
 
+        # Required to align with dendrograms
         _ = self.fig.update_xaxes(
             range=[-0.5, len(self.chm.permuted_column_labels) - 0.5],
             **target_position._asdict(),
