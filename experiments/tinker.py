@@ -75,7 +75,7 @@ c = ClusteredHeatMap(
 #
 # fig.show()
 
-b = PlotlyVisuBuilder(c, vertical_layout="dhg", horizontal_layout="dgh")
+b = PlotlyVisuBuilder(c, vertical_layout="hgd", horizontal_layout="ghd")
 b.add_heatmap()
 b.add_col_dendrogram()
 b.add_row_dendrogram()

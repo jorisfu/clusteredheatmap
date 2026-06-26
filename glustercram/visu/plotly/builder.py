@@ -1,3 +1,4 @@
+# pyright: reportExplicitAny=false
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
@@ -126,8 +127,8 @@ class PlotlyVisuBuilder:
         return dict(
             yanchor="bottom",
             x=1.0,
-            y=0.0, # TODO
-            len=1.0, # TODO
+            y=next(self._colorbar_position),
+            len=1/self._colorbar_amount,
             **kwargs
         )
 
@@ -192,13 +193,82 @@ class PlotlyVisuBuilder:
         # Used for group markers if no custom colors are given
         self.distinct_colorgen: Generator[Color] = self._default_distinct_colorgen()
 
+        # Required for size/pos of colorbars
+        self._colorbar_amount: int = 1 + len(self.chm.row_group_mappings) + len(self.chm.column_group_mappings)
+        self._colorbar_position: Generator[float, None, None] = self._colorbar_position_generator(self._colorbar_amount)
+
+        self._relative_subplot_widths: dict[SubplotType, int] = dict()
+        self._relative_subplot_heights: dict[SubplotType, int] = dict()
+
+    def _colorbar_position_generator(self, total_amount: int):
+        for i in range(total_amount):
+            yield i / total_amount
+
+    def _apply_display_ratios(self):
+        y_layout_ratios: list[int] = []
+        x_layout_ratios: list[int] = []
+
+        for char in self.vertical_layout:
+            match char:
+                case "d":
+                    y_layout_ratios.append(self._relative_subplot_heights.get(SubplotType.COL_DENDRO, 0))
+                case "g":
+                    y_layout_ratios.append(self._relative_subplot_heights.get(SubplotType.COL_GROUPMARKERS, 0))
+                case "h":
+                    y_layout_ratios.append(self._relative_subplot_heights.get(SubplotType.HEATMAP, 0))
+                case _:
+                    pass
+
+        for char in self.horizontal_layout:
+            match char:
+                case "d":
+                    x_layout_ratios.append(self._relative_subplot_widths.get(SubplotType.ROW_DENDRO, 0))
+                case "g":
+                    x_layout_ratios.append(self._relative_subplot_widths.get(SubplotType.ROW_GROUPMARKERS, 0))
+                case "h":
+                    x_layout_ratios.append(self._relative_subplot_widths.get(SubplotType.HEATMAP, 0))
+                case _:
+                    pass
+
+        y_layout_ratios = y_layout_ratios[::-1]
+
+        def get_layout_domain_ratios(custom_ratios: list[int]) -> list[list[float]]:
+            normalized_ratios: list[float] = [
+                i / sum(custom_ratios) for i in custom_ratios
+            ]
+            domains = []
+
+            start = 0.0
+            for boundary in normalized_ratios:
+                end = start + boundary
+                domains.append([start, end])
+                start = end
+
+            return domains
+
+        y_domains = get_layout_domain_ratios(y_layout_ratios)[::-1]
+        x_domains = get_layout_domain_ratios(x_layout_ratios)
+
+        for row in range(self.subplot_rows):
+            for col in range(self.subplot_cols):
+                _ = self.fig.update_yaxes(
+                    row=row + 1, col=col + 1, domain=y_domains[row]
+                )
+                _ = self.fig.update_xaxes(
+                    row=row + 1, col=col + 1, domain=x_domains[col]
+                )
+
     def get_figure(self) -> Figure:
+        # For performance reasons we only do this right before returning the fully constructed figure
+        self._apply_display_ratios()
         return self.fig
 
     # TODO: Colorscale issues and asymmetric colorscale, see pz implementation
     def add_heatmap(
         self,
-        nan_color: Color = "#000000"
+        nan_color: Color = "#000000",
+        relative_width: int = 80,
+        relative_height: int = 80,
     ) -> None:
         def generate_background_map(
             data: HeatmapMatrix, nan_color: Color
@@ -226,12 +296,12 @@ class PlotlyVisuBuilder:
 
             return background_map
 
-        pos = self.subplot_positions[SubplotType.HEATMAP]
+        target_position = self.subplot_positions[SubplotType.HEATMAP]
 
         # TODO: Check here if we have nans in data
         if True:
             background_map = generate_background_map(self.chm.permuted_data, nan_color)
-            self.helpers.add_trace(background_map, pos)
+            self.helpers.add_trace(background_map, target_position)
 
         # TODO: Generalise this and cast all groupings
         # So we can get group info in tooltip?
@@ -257,9 +327,23 @@ class PlotlyVisuBuilder:
             hovertemplate=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: %{{z}} <extra></extra>",
         )
 
-        self.helpers.add_trace(heatmap, self.subplot_positions[SubplotType.HEATMAP])
+        self.helpers.add_trace(heatmap, target_position)
 
-    def add_col_dendrogram(self):
+        self.helpers.update_xyaxes(target_position, showticklabels=False)
+
+        _ = self.fig.update_xaxes(
+            range=[-0.5, len(self.chm.permuted_column_labels) - 0.5],
+            **target_position._asdict(),
+        )
+        _ = self.fig.update_yaxes(
+            range=[-0.5, len(self.chm.permuted_row_labels) - 0.5],
+            **target_position._asdict(),
+        )
+
+        self._relative_subplot_widths[SubplotType.HEATMAP] = relative_width
+        self._relative_subplot_heights[SubplotType.HEATMAP] = relative_height
+
+    def add_col_dendrogram(self, relative_height: int = 30):
         target_position = self.subplot_positions[SubplotType.COL_DENDRO]
 
         if "d" not in self.vertical_layout:
@@ -274,14 +358,16 @@ class PlotlyVisuBuilder:
         ).data
 
         # Downscale to match heatmap axis
+        invert_scale = -1 if orientation == "top" else 1 # Sadly the ff dendrogram gets mirrored so we need this
         for trace in cols_dendro_traces:
-            trace["x"] = np.array(trace["x"] - 5) / 10
+            trace["x"] = np.array(trace["x"] - 5 * invert_scale) * invert_scale / 10
 
         self.helpers.add_tracelist(target_position, cols_dendro_traces)
         self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
         self._sync_to_heatmap("x", target_position)
+        self._relative_subplot_heights[SubplotType.COL_DENDRO] = relative_height
 
-    def add_row_dendrogram(self):
+    def add_row_dendrogram(self, relative_width: int = 30):
         target_position = self.subplot_positions[SubplotType.ROW_DENDRO]
 
         if "d" not in self.horizontal_layout:
@@ -296,12 +382,14 @@ class PlotlyVisuBuilder:
         ).data
 
         # Downscale to match heatmap axis
+        invert_scale = -1 if orientation == "left" else 1 # Sadly the ff dendrogram gets mirrored so we need this
         for trace in rows_dendro_traces:
-            trace["y"] = np.array(trace["y"] - 5) / 10
+            trace["y"] = np.array(trace["y"] - 5 * invert_scale) * invert_scale / 10
 
         self.helpers.add_tracelist(target_position, rows_dendro_traces)
         self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
         self._sync_to_heatmap("y", target_position)
+        self._relative_subplot_widths[SubplotType.ROW_DENDRO] = relative_width
         
     def _create_group_marker_trace(
         self,
@@ -396,8 +484,8 @@ class PlotlyVisuBuilder:
 
         return trace
 
-    # TODO: Parametrize group whitelist/blacklist and color override
-    def add_col_group_markers(self):
+    # TODO: Parametrize group color override
+    def add_col_group_markers(self, relative_height_per_marker: int = 2):
         target_position: LayoutPoint = self.subplot_positions[SubplotType.COL_GROUPMARKERS]
 
         for idx, (label, mapping) in enumerate(self.chm.column_group_mappings.items()):
@@ -413,9 +501,10 @@ class PlotlyVisuBuilder:
 
         self.helpers.update_xyaxes(target_position, visible=False)
         self._sync_to_heatmap("x", target_position)
+        self._relative_subplot_heights[SubplotType.COL_GROUPMARKERS] = relative_height_per_marker * len(self.chm.column_group_mappings)
 
-    # TODO: Parametrize group whitelist/blacklist and color override
-    def add_row_group_markers(self):
+    # TODO: Parametrize group color override
+    def add_row_group_markers(self, relative_width_per_marker: int = 1):
         target_position: LayoutPoint = self.subplot_positions[SubplotType.ROW_GROUPMARKERS]
 
         for idx, (label, mapping) in enumerate(self.chm.row_group_mappings.items()):
@@ -432,6 +521,7 @@ class PlotlyVisuBuilder:
 
         self.helpers.update_xyaxes(target_position, visible=False)
         self._sync_to_heatmap("y", target_position)
+        self._relative_subplot_widths[SubplotType.ROW_GROUPMARKERS] = relative_width_per_marker * len(self.chm.row_group_mappings)
 
     def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint):
         match axis:
