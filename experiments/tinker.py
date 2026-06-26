@@ -1,5 +1,6 @@
 import sys, os
 
+
 sys.path.append("./glustercram")
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from glustercram.clustergram import ClusteredHeatMap
+from glustercram.visu.plotly.builder import PlotlyVisuBuilder
 from glustercram.types import Vector
 
 from glustercram.algos import distance, linkage
@@ -62,13 +64,22 @@ c = ClusteredHeatMap(
     data_row_title="Sample",
 )
 
-fig = c.get_visualization_plotly(
-    heatmap_kwargs={
-        "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
-        "zmin": -2.5,
-        "zmid": 0,
-        "zmax": 3.5,
-    },
-)
+# fig = c.get_visualization_plotly(
+#     heatmap_kwargs={
+#         "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
+#         "zmin": -2.5,
+#         "zmid": 0,
+#         "zmax": 3.5,
+#     },
+# )
+#
+# fig.show()
 
-fig.show()
+b = PlotlyVisuBuilder(c, vertical_layout="dhg", horizontal_layout="dgh")
+b.add_heatmap()
+b.add_col_dendrogram()
+b.add_row_dendrogram()
+b.add_col_group_markers()
+b.add_row_group_markers()
+
+b.get_figure().show()

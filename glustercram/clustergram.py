@@ -361,7 +361,7 @@ class ClusteredHeatMap:
         def create_group_marker_trace(
             data_labels: list[str],
             label_to_group: dict[str, str],
-            default_color: str = "#000000",
+            *,
             is_vertical: bool = False,
             colorbar_ypos: float = 0.0,
             colorbar_size: float = 1.0,
@@ -387,8 +387,8 @@ class ClusteredHeatMap:
 
             # Embedding like this required for continuous colorscale
             group_to_z: dict[str | None, float] = {
-                g: i + 0.5
-                for i, g in enumerate(all_groups)  # Center within bin of size 1
+                g: i + 0.5  # Center within bin of size 1
+                for i, g in enumerate(all_groups)  
             }
 
             data_as_groups = [label_to_group.get(label) for label in data_labels]

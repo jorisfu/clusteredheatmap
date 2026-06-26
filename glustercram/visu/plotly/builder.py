@@ -1,6 +1,5 @@
-from ast import Sub
 from enum import StrEnum
-from typing import Any, Generator
+from typing import Any, Generator, Literal
 
 
 import numpy as np
@@ -11,9 +10,14 @@ from plotly import subplots
 from plotly.graph_objs import Figure
 from glustercram.clustergram import ClusteredHeatMap
 from glustercram.types import Color, HeatmapMatrix, LayoutPoint
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
 
 
 class LayoutError(Exception):
+    pass
+
+class ColorError(Exception):
     pass
 
 
@@ -25,9 +29,13 @@ class SubplotType(StrEnum):
     HEATMAP = "heatmap"
 
 
+DENDRO_AXES_LAYOUT = {
+    "showline": False,
+    "showgrid": False,
+    "showticklabels": False,
+}
+
 class PlotlyVisuBuilder:
-
-
     def _validate_layout_string(self, s: str) -> None:
         if len(s) == 0:
             raise LayoutError(
@@ -57,6 +65,8 @@ class PlotlyVisuBuilder:
             vertical_layout.index("h") + 1,
             horizontal_layout.index("h") + 1,
         )
+
+        subplot_positions[SubplotType.HEATMAP] = heatmap_position
 
         for row, content in enumerate(vertical_layout):
             match content:
@@ -103,15 +113,32 @@ class PlotlyVisuBuilder:
         )
 
     # TODO: Parametrize
-    def _default_distinct_colorgen(self) -> Generator[Color]:
+    def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
         return (y for y in px.colors.qualitative.Bold)
+
+
+    def _new_colorbar(self, **kwargs: Any):
+        """
+        Returns a dict specifying a new colorbar legend.
+        Position, size and anchor get handled by this,
+        all other parameters can be freely passed
+        """
+        return dict(
+            yanchor="bottom",
+            x=1.0,
+            y=0.0, # TODO
+            len=1.0, # TODO
+            **kwargs
+        )
 
 
     def __init__(
         self,
         chm: ClusteredHeatMap,
-        vertical_layout: str = "",
-        horizontal_layout: str = "",
+        *,
+        vertical_layout: str = "dgh",
+        horizontal_layout: str = "dgh",
+        background_color: Color = "white",
     ) -> None:
         """
         Builder for a plotly-based visualization of a clustered heatmap.
@@ -137,6 +164,9 @@ class PlotlyVisuBuilder:
         self._validate_layout_string(vertical_layout)
         self._validate_layout_string(horizontal_layout)
 
+        self.vertical_layout: str = vertical_layout
+        self.horizontal_layout: str = horizontal_layout
+
         self.subplot_rows: int = len(vertical_layout) or 1
         self.subplot_cols: int = len(horizontal_layout) or 1
 
@@ -144,13 +174,28 @@ class PlotlyVisuBuilder:
         self.subplot_positions: dict[SubplotType, LayoutPoint] = self._build_layout(
             horizontal_layout, vertical_layout
         )
-
+        
         self.fig: Figure = self._build_figure()
+        _ = self.fig.update_layout(
+            plot_bgcolor=background_color, 
+            showlegend=False
+        )
+
+        # Need to save these for axes synchronization
+        self._heatmap_x_id = next(
+            self.fig.select_xaxes(**self.subplot_positions[SubplotType.HEATMAP]._asdict())
+        ).plotly_name.replace("axis", "")
+        self._heatmap_y_id = next(
+            self.fig.select_yaxes(**self.subplot_positions[SubplotType.HEATMAP]._asdict())
+        ).plotly_name.replace("axis", "")
 
         # Used for group markers if no custom colors are given
         self.distinct_colorgen: Generator[Color] = self._default_distinct_colorgen()
 
+    def get_figure(self) -> Figure:
+        return self.fig
 
+    # TODO: Colorscale issues and asymmetric colorscale, see pz implementation
     def add_heatmap(
         self,
         nan_color: Color = "#000000"
@@ -202,28 +247,219 @@ class PlotlyVisuBuilder:
 
         heatmap = go.Heatmap(
             z=self.chm.permuted_data,
-            colorbar=dict(
+            colorbar=self._new_colorbar(
                 title=self.chm.data_z_title,
-                yanchor="bottom",
-                y=current_colorbar_ypos(),
-                len=colorbar_size,
                 # tickmode="array",
                 # tickvals=(zmin, target_data_midpoint, zmax),
             ),
+            colorscale=[[0.0, "#FF0000"], [0.5, "#FFFFFF"], [1.0, "#0000FF"]],
             customdata=custom_data,
-            hovertemplate=f"{self.data_column_title}: %{{customdata[0]}}<br>{self.data_row_title}: %{{customdata[1]}}<br>{self.data_z_title}: %{{z}} <extra></extra>",
-            **heatmap_kwargs,
+            hovertemplate=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: %{{z}} <extra></extra>",
         )
 
-        _ = fig.add_trace(
-            heatmap,
-            row=HEATMAP_POS.row,
-            col=HEATMAP_POS.col,
-        )
+        self.helpers.add_trace(heatmap, self.subplot_positions[SubplotType.HEATMAP])
+
+    def add_col_dendrogram(self):
+        target_position = self.subplot_positions[SubplotType.COL_DENDRO]
+
+        if "d" not in self.vertical_layout:
+            raise LayoutError("Cannot add column dendrogram as position is not specified in layout")
+        orientation = "bottom" if self.vertical_layout.index("d") < self.vertical_layout.index("h") else "top"
+
+        cols_dendro_traces = ff._dendrogram._Dendrogram(
+            self.chm.data_cols,
+            orientation=orientation,
+            distfun=lambda _: None,
+            linkagefun=lambda _: self.chm.linkage_matrix_cols,  # Always use precomputed matrix
+        ).data
+
+        # Downscale to match heatmap axis
+        for trace in cols_dendro_traces:
+            trace["x"] = np.array(trace["x"] - 5) / 10
+
+        self.helpers.add_tracelist(target_position, cols_dendro_traces)
+        self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
+        self._sync_to_heatmap("x", target_position)
+
+    def add_row_dendrogram(self):
+        target_position = self.subplot_positions[SubplotType.ROW_DENDRO]
+
+        if "d" not in self.horizontal_layout:
+            raise LayoutError("Cannot add row dendrogram as position is not specified in layout")
+        orientation = "right" if self.horizontal_layout.index("d") < self.horizontal_layout.index("h") else "left"
+
+        rows_dendro_traces = ff._dendrogram._Dendrogram(
+            self.chm.data_rows,
+            orientation=orientation,
+            distfun=lambda _: None,
+            linkagefun=lambda _: self.chm.linkage_matrix_rows,  # Always use precomputed matrix
+        ).data
+
+        # Downscale to match heatmap axis
+        for trace in rows_dendro_traces:
+            trace["y"] = np.array(trace["y"] - 5) / 10
+
+        self.helpers.add_tracelist(target_position, rows_dendro_traces)
+        self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
+        self._sync_to_heatmap("y", target_position)
         
+    def _create_group_marker_trace(
+        self,
+        data_labels: list[str],
+        label_to_group: dict[str, str],
+        *,
+        group_to_color: dict[str, Color] | None = None,
+        legend_title: str = "Group",
+        axis_title: str = "Axis value",
+        groups_on_axis: int = 1,
+        group_no: int = 0,
+        is_vertical: bool = False,
+    ):
+        """
+        Creates a trace used for group markers.
+
+        :param data_labels: The labels of the data as ordered on the axis to mark
+        :param label_to_group: Mapping of data labels to group identifiers.
+            If incomplete, mapping is performed to None and no color marker will be set
+        :param group_to_color: Mapping of group identifiers to colors (optional).
+            If given, must fully map all groups to colors.
+            By default, a distinct color generator is used and no mapping needs to 
+            be provided.
+        :param groups_on_axis: If multiple group markers are used, this is the total number
+            of group markers that are plotted on the same axis.
+        :param group_no: If multiple group markers are used, this is the position
+            of the current group marker within the group marker stack
+        :param is_vertical: True iff the group markers are to be arranged vertically
+        """
+
+        all_groups = sorted(list(set(label_to_group.values())))
+        amount_of_groups = len(all_groups)
+
+        if group_to_color is not None and amount_of_groups > len(group_to_color):
+            raise ColorError("Provided color mapping does not map all groups to colors")
+
+        # Embedding like this required for continuous colorscale
+        group_to_z: dict[str | None, float] = {
+            g: i + 0.5
+            for i, g in enumerate(all_groups)  # Center within bin of size 1
+        }
+
+        data_as_groups = [label_to_group.get(label) for label in data_labels]
+
+        data_as_z_values = np.full([groups_on_axis, len(data_labels)], np.nan)
+        data_as_z_values[group_no] = np.array(
+            [[group_to_z.get(group, np.nan) for group in data_as_groups]]
+        )
+
+        group_label_matrix = [[""] * len(data_labels)] * groups_on_axis
+        group_label_matrix[group_no] = [l or "" for l in data_as_groups]
+        group_label_matrix = np.array(group_label_matrix)
+
+        data_label_matrix = [[""] * len(data_labels)] * groups_on_axis
+        data_label_matrix[group_no] = data_labels
+        data_label_matrix = np.array(data_label_matrix)
+
+        if is_vertical:
+            data_as_z_values = data_as_z_values.transpose()
+            group_label_matrix = group_label_matrix.transpose()
+            data_label_matrix = data_label_matrix.transpose()
+
+        custom_data = np.dstack((data_label_matrix, group_label_matrix))
+
+        colorscale: list[tuple[float, Color]] = []
+        for idx, group in enumerate(all_groups):
+            if group_to_color is not None:
+                color = group_to_color[group]
+            else:
+                color = next(self.distinct_colorgen)
+            # Imitate discrete scale by using thresholds of size 0.0
+            step_low = idx / amount_of_groups
+            step_high = (idx + 1) / amount_of_groups
+            colorscale.extend([(step_low, color), (step_high, color)])
+
+        trace = go.Heatmap(
+            z=data_as_z_values,
+            zmin=0,
+            zmax=amount_of_groups,
+            colorscale=colorscale,
+            colorbar=self._new_colorbar(
+                title=legend_title,
+                tickvals=[i + 0.5 for i in range(amount_of_groups)],
+                ticktext=all_groups,
+                tickmode="array",
+            ),
+            customdata=custom_data,
+            text=data_labels,
+            hovertemplate=f"{axis_title} %{{customdata[0]}}<br>{legend_title}: %{{customdata[1]}}<br><extra></extra>",
+            hoverongaps=False,
+        )
+
+        return trace
+
+    # TODO: Parametrize group whitelist/blacklist and color override
+    def add_col_group_markers(self):
+        target_position: LayoutPoint = self.subplot_positions[SubplotType.COL_GROUPMARKERS]
+
+        for idx, (label, mapping) in enumerate(self.chm.column_group_mappings.items()):
+            column_gm_map = self._create_group_marker_trace(
+                self.chm.permuted_column_labels,
+                mapping,
+                legend_title=label,
+                group_no=idx,
+                groups_on_axis=len(self.chm.column_group_mappings),
+                axis_title=self.chm.data_column_title,
+            )
+            self.helpers.add_trace(column_gm_map, target_position)
+
+        self.helpers.update_xyaxes(target_position, visible=False)
+        self._sync_to_heatmap("x", target_position)
+
+    # TODO: Parametrize group whitelist/blacklist and color override
+    def add_row_group_markers(self):
+        target_position: LayoutPoint = self.subplot_positions[SubplotType.ROW_GROUPMARKERS]
+
+        for idx, (label, mapping) in enumerate(self.chm.row_group_mappings.items()):
+            row_gm_map = self._create_group_marker_trace(
+                self.chm.permuted_row_labels,
+                mapping,
+                legend_title=label,
+                group_no=idx,
+                groups_on_axis=len(self.chm.row_group_mappings),
+                axis_title=self.chm.data_row_title,
+                is_vertical=True,
+            )
+            self.helpers.add_trace(row_gm_map, target_position)
+
+        self.helpers.update_xyaxes(target_position, visible=False)
+        self._sync_to_heatmap("y", target_position)
+
+    def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint):
+        match axis:
+            case "x":
+                _ = self.fig.update_xaxes(matches=self._heatmap_x_id, **pos._asdict())
+            case "y":
+                _ = self.fig.update_yaxes(matches=self._heatmap_y_id, **pos._asdict())
+
 class PlotlyHelpers:
     def __init__(self, builder: PlotlyVisuBuilder) -> None:
         self._builder: PlotlyVisuBuilder = builder
 
     def add_trace(self, trace: BaseTraceType, pos: LayoutPoint) -> None:
         _ = self._builder.fig.add_trace(trace, pos.row, pos.col)
+
+    def add_tracelist(self, pos: LayoutPoint, traces: list[BaseTraceType]):
+        """
+        Adds multiple traces to the same subplot
+        """
+        _ = self._builder.fig.add_traces(
+            traces,
+            rows=[pos.row] * len(traces),
+            cols=[pos.col] * len(traces),
+        )
+
+    def update_xyaxes(self, pos: LayoutPoint, **kwargs: Any):
+        """
+        Updates x and y axis layout args for a subplot
+        """
+        _ = self._builder.fig.update_xaxes(row=pos.row, col=pos.col, **kwargs)
+        _ = self._builder.fig.update_yaxes(row=pos.row, col=pos.col, **kwargs)
