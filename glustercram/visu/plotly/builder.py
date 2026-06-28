@@ -611,9 +611,22 @@ class PlotlyVisuBuilder:
 
         return trace
 
-    # TODO: Parametrize group color override
-    def add_col_group_markers(self, relative_height_per_marker: int = 2):
+    def add_col_group_markers(
+        self, 
+        relative_height_per_marker: int = 2, 
+        _color_overrides: dict[str, dict[str, Color]] | None = None,
+    ):
+        """
+        Adds group markers per column.
+
+        :param relative_height_per_marker: visual height of each group marker (relative to entire plot)
+        :param _color_overrides: custom colors for groups. Mapping is performed from the name of the mapping
+            (see column_group_mappings in ClusteredHeatMap) to a dict mapping each group to a specific color.
+            Color mapping must be complete for all groups to override.
+            If no mapping is specified, the default color generator gets used.
+        """
         target_position: LayoutPoint = self.subplot_positions[SubplotType.COL_GROUPMARKERS]
+        color_overrides = _color_overrides or dict()
 
         for idx, (label, mapping) in enumerate(self.chm.column_group_mappings.items()):
             column_gm_map = self._create_group_marker_trace(
@@ -623,6 +636,7 @@ class PlotlyVisuBuilder:
                 group_no=idx,
                 groups_on_axis=len(self.chm.column_group_mappings),
                 axis_title=self.chm.data_column_title,
+                group_to_color=color_overrides.get(label)
             )
             self.helpers.add_trace(column_gm_map, target_position)
 
@@ -630,9 +644,22 @@ class PlotlyVisuBuilder:
         self._sync_to_heatmap("x", target_position)
         self._relative_subplot_heights[SubplotType.COL_GROUPMARKERS] = relative_height_per_marker * len(self.chm.column_group_mappings)
 
-    # TODO: Parametrize group color override
-    def add_row_group_markers(self, relative_width_per_marker: int = 1):
+    def add_row_group_markers(
+        self, 
+        relative_width_per_marker: int = 1, 
+        _color_overrides: dict[str, dict[str, Color]] | None = None,
+    ):
+        """
+        Adds group markers per column.
+
+        :param relative_width_per_marker: visual width of each group marker (relative to entire plot)
+        :param _color_overrides: custom colors for groups. Mapping is performed from the name of the mapping
+            (see row_group_mappings in ClusteredHeatMap) to a dict mapping each group to a specific color.
+            Color mapping must be complete for all groups to override.
+            If no mapping is specified, the default color generator gets used.
+        """
         target_position: LayoutPoint = self.subplot_positions[SubplotType.ROW_GROUPMARKERS]
+        color_overrides = _color_overrides or dict()
 
         for idx, (label, mapping) in enumerate(self.chm.row_group_mappings.items()):
             row_gm_map = self._create_group_marker_trace(
@@ -643,6 +670,7 @@ class PlotlyVisuBuilder:
                 groups_on_axis=len(self.chm.row_group_mappings),
                 axis_title=self.chm.data_row_title,
                 is_vertical=True,
+                group_to_color=color_overrides.get(label)
             )
             self.helpers.add_trace(row_gm_map, target_position)
 
