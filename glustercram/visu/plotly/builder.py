@@ -461,6 +461,9 @@ class PlotlyVisuBuilder:
     ##
 
     def add_col_dendrogram(self, relative_height: int = 30):
+        if not self.chm.cluster_columns:
+            raise ValueError("Columns were not clustered, no dendrogram can be plotted.")
+
         target_position = self.subplot_positions[SubplotType.COL_DENDRO]
 
         if "d" not in self.vertical_layout:
@@ -485,6 +488,9 @@ class PlotlyVisuBuilder:
         self._relative_subplot_heights[SubplotType.COL_DENDRO] = relative_height
 
     def add_row_dendrogram(self, relative_width: int = 30):
+        if not self.chm.cluster_rows:
+            raise ValueError("Rows were not clustered, no dendrogram can be plotted.")
+
         target_position = self.subplot_positions[SubplotType.ROW_DENDRO]
 
         if "d" not in self.horizontal_layout:
