@@ -5,6 +5,7 @@ from typing import Any, Generator, Literal
 
 import numpy as np
 
+import plotly.colors
 from plotly.basedatatypes import BaseTraceType
 import plotly.express as px
 from plotly import subplots
@@ -309,13 +310,44 @@ class PlotlyVisuBuilder:
     ## HEATMAP AND CONTINUOUS COLORSCALES
     ##
 
-    def _build_asymmetric_colorscale(self, colorscale: str | list[tuple[float, Color]], zmin: float, zmax: float, zmid: float):
+    def _build_asymmetric_colorscale(self, _colorscale: str | list[tuple[float, Color]], zmin: float, zmax: float, zmid: float):
         """
-        TODO copy from what i did in protzilla
-        """
-        return colorscale, 0.5
+        Adjusts a divergent colorscale for a heatmap.
+        The colors are redistributed to allow for asymmetry according
+        to the data thresholds given.
+        Note that just passing zmid to plotly's heatmap does not work like this, hence
+        this implementation
 
-    # TODO: Colorscale issues and asymmetric colorscale, see pz implementation
+        :param _colorscale: Either the colorscale to adjust or the name of the plotly 
+            colorscale to use.
+        :param zmin: the data value corresponding to the minimum value (0.0) of the colorscale
+        :param zmid: the data value corresponding to the center of the colorscale.
+            The resulting colorscale's center point will be adjusted to this.
+        :param zmax: the data value corresponding to the maximum value (1.0) of the colorscale
+        """
+
+        colorscale: list[list[float | Color]] | list[tuple[float, Color]] = []
+        if isinstance(_colorscale, str):
+            colorscale = plotly.colors.get_colorscale(_colorscale)
+        else:
+            colorscale = _colorscale
+
+        if 0.5 not in [c[0] for c in colorscale]:
+            raise ColorError("Colorscale for heatmap is missing a clearly defined midpoint (color at 0.5)")
+
+        color_midpoint = (zmid - zmin) / (zmax - zmin)
+
+        new_colorscale = []
+        for tick in filter(lambda tick: tick[0] <= 0.5, colorscale):
+            adjusted_tick_base = lerp(0, color_midpoint, tick[0]/0.5)
+            new_colorscale.append((adjusted_tick_base, tick[1]))
+
+        for tick in filter(lambda tick: tick[0] > 0.5, colorscale):
+            adjusted_tick_base = lerp(color_midpoint, 1, (tick[0]-color_midpoint)/(1-color_midpoint))
+            new_colorscale.append((adjusted_tick_base, tick[1]))
+
+        return new_colorscale
+
     def add_heatmap(
         self,
         *,
@@ -357,18 +389,21 @@ class PlotlyVisuBuilder:
 
         ## Colorscale calculation
         if zmin is None:
-            zmin = float(self.chm.permuted_data.min())
+            zmin = float(np.nanmin(self.chm.permuted_data))
 
         if zmax is None:
-            zmax = float(self.chm.permuted_data.max())
+            zmax = float(np.nanmax(self.chm.permuted_data))
 
         if zmid is None:
             zmid = np.average([zmin, zmax])
 
+        if not (zmin <= zmid <= zmax):
+            raise ValueError(f"Heatmap zmin ({str(zmin)}), zmid ({str(zmid)}) and zmax ({str(zmax)}) must be in increasing order.")
+
         if colorscale is None:
             colorscale = DEFAULT_HEATMAP_COLORSCALE
 
-        colorscale, data_midpoint_in_colorspace = self._build_asymmetric_colorscale(colorscale, zmin, zmax, zmid)
+        colorscale = self._build_asymmetric_colorscale(colorscale, zmin, zmax, zmid)
 
         ## Background map for NaNs
         # TODO: Check here if we have nans in data
@@ -396,11 +431,13 @@ class PlotlyVisuBuilder:
             colorbar=self._new_colorbar(
                 title=self.chm.data_z_title,
                 tickmode="array",
-                tickvals=(zmin, data_midpoint_in_colorspace, zmax),
+                tickvals=(zmin, zmid, zmax),
             ),
             colorscale=colorscale,
             customdata=custom_data,
             hovertemplate=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: %{{z}} <extra></extra>",
+            zmin=zmin,
+            zmax=zmax,
         )
 
         self.helpers.add_trace(heatmap, target_position)
@@ -630,3 +667,15 @@ class PlotlyHelpers:
         """
         _ = self._builder.fig.update_xaxes(row=pos.row, col=pos.col, **kwargs)
         _ = self._builder.fig.update_yaxes(row=pos.row, col=pos.col, **kwargs)
+
+
+
+def lerp(start: float, end: float, alpha: float) -> float:
+    """
+    Performs linear interpolation
+
+    :param start: first interpolation value
+    :param end: second interpolation value
+    :param alpha: interpolation factor (between 0 and 1)
+    """
+    return (1 - alpha) * start + alpha * end
