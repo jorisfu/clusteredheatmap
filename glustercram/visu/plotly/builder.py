@@ -39,6 +39,7 @@ DENDRO_AXES_LAYOUT = {
 }
 
 DEFAULT_HEATMAP_COLORSCALE = [(0.0, "#FF0000"), (0.5, "#FFFFFF"), (1.0, "#0000FF")]
+DENDRO_COLORSCALE = ["rgb(133,133,133)" for _ in range(8)]
 
 
 class PlotlyVisuBuilder:
@@ -494,7 +495,7 @@ class PlotlyVisuBuilder:
     ## DENDROGRAMS
     ##
 
-    def add_col_dendrogram(self, relative_height: int = 30):
+    def add_col_dendrogram(self, relative_height: int = 30, color_threshold: int = 0, colorscale: list[Color] = DENDRO_COLORSCALE):
         if not self.chm.cluster_columns:
             raise ValueError(
                 "Columns were not clustered, no dendrogram can be plotted."
@@ -517,6 +518,8 @@ class PlotlyVisuBuilder:
             orientation=orientation,
             distfun=lambda _: None,
             linkagefun=lambda _: self.chm.linkage_matrix_cols,  # Always use precomputed matrix
+            color_threshold=color_threshold,
+            colorscale=colorscale,
         ).data
 
         # Downscale to match heatmap axis
@@ -531,7 +534,7 @@ class PlotlyVisuBuilder:
         self._sync_to_heatmap("x", target_position)
         self._relative_subplot_heights[SubplotType.COL_DENDRO] = relative_height
 
-    def add_row_dendrogram(self, relative_width: int = 30):
+    def add_row_dendrogram(self, relative_width: int = 30, color_threshold: int = 0, colorscale: list[Color] = DENDRO_COLORSCALE):
         if not self.chm.cluster_rows:
             raise ValueError("Rows were not clustered, no dendrogram can be plotted.")
 
@@ -552,6 +555,8 @@ class PlotlyVisuBuilder:
             orientation=orientation,
             distfun=lambda _: None,
             linkagefun=lambda _: self.chm.linkage_matrix_rows,  # Always use precomputed matrix
+            color_threshold=color_threshold,
+            colorscale=colorscale,
         ).data
 
         # Downscale to match heatmap axis

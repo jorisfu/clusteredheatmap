@@ -78,7 +78,7 @@ c = ClusteredHeatMap(
 b = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh")
 b.add_heatmap(zmin=-2.5, zmid=0, zmax=3.5)
 b.add_col_dendrogram()
-b.add_row_dendrogram()
+b.add_row_dendrogram(color_threshold=None)
 b.add_col_group_markers(_color_overrides={"Age": {"<65": "#FCE300", ">65": "#ABD310"}})
 b.add_row_group_markers(
     _color_overrides={
