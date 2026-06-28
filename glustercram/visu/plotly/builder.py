@@ -29,7 +29,6 @@ class SubplotType(StrEnum):
     ROW_GROUPMARKERS = "row_groupmarkers"
     HEATMAP = "heatmap"
 
-
 DENDRO_AXES_LAYOUT = {
     "showline": False,
     "showgrid": False,
@@ -39,101 +38,6 @@ DENDRO_AXES_LAYOUT = {
 DEFAULT_HEATMAP_COLORSCALE = [(0.0, "#FF0000"), (0.5, "#FFFFFF"), (1.0, "#0000FF")]
 
 class PlotlyVisuBuilder:
-    def _validate_layout_string(self, s: str) -> None:
-        if len(s) == 0:
-            raise LayoutError(
-                "Empty layout string given, must include at least heatmap"
-            )
-
-        if len(s) > 3:
-            raise LayoutError("Layout string is too long")
-
-        if len(s) != len(set(s)):
-            raise LayoutError(
-                "Layout string may only specify one position for each subplot"
-            )
-
-        if set(s) - {"d", "g", "h"}:
-            raise LayoutError("Layout string has illegal characters, may only be d/g/h")
-
-        if "h" not in s:
-            raise LayoutError("Layout string does not specify heatmap position")
-
-    def _build_layout(
-        self, horizontal_layout: str, vertical_layout: str
-    ) -> dict[SubplotType, LayoutPoint]:
-        subplot_positions: dict[SubplotType, LayoutPoint] = dict()
-
-        heatmap_position = LayoutPoint(
-            vertical_layout.index("h") + 1,
-            horizontal_layout.index("h") + 1,
-        )
-
-        subplot_positions[SubplotType.HEATMAP] = heatmap_position
-
-        for row, content in enumerate(vertical_layout):
-            match content:
-                case "d":
-                    subplot_positions[SubplotType.COL_DENDRO] = LayoutPoint(
-                        row + 1, heatmap_position.col
-                    )
-                case "g":
-                    subplot_positions[SubplotType.COL_GROUPMARKERS] = LayoutPoint(
-                        row + 1, heatmap_position.col
-                    )
-                case _:
-                    pass
-
-        for col, content in enumerate(horizontal_layout):
-            match content:
-                case "d":
-                    subplot_positions[SubplotType.ROW_DENDRO] = LayoutPoint(
-                        heatmap_position.row, col + 1
-                    )
-                case "g":
-                    subplot_positions[SubplotType.ROW_GROUPMARKERS] = LayoutPoint(
-                        heatmap_position.row, col + 1
-                    )
-                case _:
-                    pass
-
-        return subplot_positions
-
-    def _build_figure(self) -> Figure:
-        specs: list[list[None | dict[str, Any]]] = [
-            [None for _ in range(self.subplot_cols)] for _ in range(self.subplot_rows)
-        ]
-
-        for subplot, pos in self.subplot_positions.items():
-            specs[pos.row - 1][pos.col - 1] = dict()
-
-        return subplots.make_subplots(
-            rows=self.subplot_rows,
-            cols=self.subplot_cols,
-            specs=specs,
-            vertical_spacing=0.0,
-            horizontal_spacing=0.0,
-        )
-
-    # TODO: Parametrize
-    def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
-        return (y for y in px.colors.qualitative.Bold)
-
-
-    def _new_colorbar(self, **kwargs: Any):
-        """
-        Returns a dict specifying a new colorbar legend.
-        Position, size and anchor get handled by this,
-        all other parameters can be freely passed
-        """
-        return dict(
-            yanchor="bottom",
-            x=1.0,
-            y=next(self._colorbar_position),
-            len=1/self._colorbar_amount,
-            **kwargs
-        )
-
 
     def __init__(
         self,
@@ -228,9 +132,97 @@ class PlotlyVisuBuilder:
 
         return self.get_figure()
 
-    def _colorbar_position_generator(self, total_amount: int):
-        for i in range(total_amount):
-            yield i / total_amount
+    def get_figure(self) -> Figure:
+        # For performance reasons we only do this right before returning the fully constructed figure
+        self._apply_display_ratios()
+        return self.fig
+
+    ##
+    ## LAYOUT AND DISPLAY
+    ##
+
+    def _validate_layout_string(self, s: str) -> None:
+        if len(s) == 0:
+            raise LayoutError(
+                "Empty layout string given, must include at least heatmap"
+            )
+
+        if len(s) > 3:
+            raise LayoutError("Layout string is too long")
+
+        if len(s) != len(set(s)):
+            raise LayoutError(
+                "Layout string may only specify one position for each subplot"
+            )
+
+        if set(s) - {"d", "g", "h"}:
+            raise LayoutError("Layout string has illegal characters, may only be d/g/h")
+
+        if "h" not in s:
+            raise LayoutError("Layout string does not specify heatmap position")
+
+    def _build_layout(
+        self, horizontal_layout: str, vertical_layout: str
+    ) -> dict[SubplotType, LayoutPoint]:
+        subplot_positions: dict[SubplotType, LayoutPoint] = dict()
+
+        heatmap_position = LayoutPoint(
+            vertical_layout.index("h") + 1,
+            horizontal_layout.index("h") + 1,
+        )
+
+        subplot_positions[SubplotType.HEATMAP] = heatmap_position
+
+        for row, content in enumerate(vertical_layout):
+            match content:
+                case "d":
+                    subplot_positions[SubplotType.COL_DENDRO] = LayoutPoint(
+                        row + 1, heatmap_position.col
+                    )
+                case "g":
+                    subplot_positions[SubplotType.COL_GROUPMARKERS] = LayoutPoint(
+                        row + 1, heatmap_position.col
+                    )
+                case _:
+                    pass
+
+        for col, content in enumerate(horizontal_layout):
+            match content:
+                case "d":
+                    subplot_positions[SubplotType.ROW_DENDRO] = LayoutPoint(
+                        heatmap_position.row, col + 1
+                    )
+                case "g":
+                    subplot_positions[SubplotType.ROW_GROUPMARKERS] = LayoutPoint(
+                        heatmap_position.row, col + 1
+                    )
+                case _:
+                    pass
+
+        return subplot_positions
+
+    def _build_figure(self) -> Figure:
+        specs: list[list[None | dict[str, Any]]] = [
+            [None for _ in range(self.subplot_cols)] for _ in range(self.subplot_rows)
+        ]
+
+        for subplot, pos in self.subplot_positions.items():
+            specs[pos.row - 1][pos.col - 1] = dict()
+
+        return subplots.make_subplots(
+            rows=self.subplot_rows,
+            cols=self.subplot_cols,
+            specs=specs,
+            vertical_spacing=0.0,
+            horizontal_spacing=0.0,
+        )
+
+    def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint):
+        match axis:
+            case "x":
+                _ = self.fig.update_xaxes(matches=self._heatmap_x_id, **pos._asdict())
+            case "y":
+                _ = self.fig.update_yaxes(matches=self._heatmap_y_id, **pos._asdict())
 
     def _apply_display_ratios(self):
         y_layout_ratios: list[int] = []
@@ -286,10 +278,36 @@ class PlotlyVisuBuilder:
                     row=row + 1, col=col + 1, domain=x_domains[col]
                 )
 
-    def get_figure(self) -> Figure:
-        # For performance reasons we only do this right before returning the fully constructed figure
-        self._apply_display_ratios()
-        return self.fig
+    ##
+    ## COLORBARS AND DISTINCT COLOR SEQUENCE GENERATION
+    ##
+
+    # TODO: Parametrize
+    def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
+        return (y for y in px.colors.qualitative.Bold)
+
+
+    def _new_colorbar(self, **kwargs: Any):
+        """
+        Returns a dict specifying a new colorbar legend.
+        Position, size and anchor get handled by this,
+        all other parameters can be freely passed
+        """
+        return dict(
+            yanchor="bottom",
+            x=1.0,
+            y=next(self._colorbar_position),
+            len=1/self._colorbar_amount,
+            **kwargs
+        )
+
+    def _colorbar_position_generator(self, total_amount: int):
+        for i in range(total_amount):
+            yield i / total_amount
+
+    ##
+    ## HEATMAP AND CONTINUOUS COLORSCALES
+    ##
 
     def _build_asymmetric_colorscale(self, colorscale: str | list[tuple[float, Color]], zmin: float, zmax: float, zmid: float):
         """
@@ -401,6 +419,10 @@ class PlotlyVisuBuilder:
         self._relative_subplot_widths[SubplotType.HEATMAP] = relative_width
         self._relative_subplot_heights[SubplotType.HEATMAP] = relative_height
 
+    ##
+    ## DENDROGRAMS
+    ##
+
     def add_col_dendrogram(self, relative_height: int = 30):
         target_position = self.subplot_positions[SubplotType.COL_DENDRO]
 
@@ -448,7 +470,11 @@ class PlotlyVisuBuilder:
         self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
         self._sync_to_heatmap("y", target_position)
         self._relative_subplot_widths[SubplotType.ROW_DENDRO] = relative_width
-        
+    
+    ##
+    ## GROUP MARKERS
+    ##
+
     def _create_group_marker_trace(
         self,
         data_labels: list[str],
@@ -580,13 +606,6 @@ class PlotlyVisuBuilder:
         self.helpers.update_xyaxes(target_position, visible=False)
         self._sync_to_heatmap("y", target_position)
         self._relative_subplot_widths[SubplotType.ROW_GROUPMARKERS] = relative_width_per_marker * len(self.chm.row_group_mappings)
-
-    def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint):
-        match axis:
-            case "x":
-                _ = self.fig.update_xaxes(matches=self._heatmap_x_id, **pos._asdict())
-            case "y":
-                _ = self.fig.update_yaxes(matches=self._heatmap_y_id, **pos._asdict())
 
 class PlotlyHelpers:
     def __init__(self, builder: PlotlyVisuBuilder) -> None:
