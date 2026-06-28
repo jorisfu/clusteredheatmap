@@ -79,7 +79,7 @@ class ClusteredHeatMap:
         self.data: pd.DataFrame = data
         self.data_rows = self.data.to_numpy()
         self.data_cols = self.data.T.to_numpy()
-        
+
         self.cluster_rows: bool = cluster_rows
         self.cluster_columns: bool = cluster_columns
 
@@ -87,7 +87,7 @@ class ClusteredHeatMap:
         self.calc_method: ClusteringFun = link.get_preferred_implementation(
             linkage, distance
         )
-        
+
         cols_permutation = list(range(len(self.data_cols)))
         rows_permutation = list(range(len(self.data_rows)))
 
@@ -99,8 +99,9 @@ class ClusteredHeatMap:
                 self.linkage_matrix_rows, self.data_rows, dist.nan_euclidean
             )
 
-            rows_permutation = scipy.cluster.hierarchy.leaves_list(self.linkage_matrix_rows)
-
+            rows_permutation = scipy.cluster.hierarchy.leaves_list(
+                self.linkage_matrix_rows
+            )
 
         self.linkage_matrix_cols = None
         if self.cluster_columns:
@@ -109,9 +110,10 @@ class ClusteredHeatMap:
             self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
                 self.linkage_matrix_cols, self.data_cols, dist.nan_euclidean
             )
-            
-            cols_permutation = scipy.cluster.hierarchy.leaves_list(self.linkage_matrix_cols)
 
+            cols_permutation = scipy.cluster.hierarchy.leaves_list(
+                self.linkage_matrix_cols
+            )
 
         permuted_data = self.data_rows[rows_permutation]
         self.permuted_data: HeatmapMatrix = permuted_data[:, cols_permutation]
@@ -132,4 +134,3 @@ class ClusteredHeatMap:
         self.data_row_title: str = data_row_title
         self.data_column_title: str = data_column_title
         self.data_z_title: str = data_z_title
-
