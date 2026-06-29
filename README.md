@@ -34,10 +34,10 @@ c = ClusteredHeatMap(
             "P09382": "Uncool Proteins",
         },
         "Coolness group": {
-            "A3KMH1-3": "Yoooo",
-            "A6NHQ2": "Noooo",
-            "Q9Y6R0": "AAAAAAAAAAAAAAAAAAAAA",
-            "P09382": "Yoooo",
+            "A3KMH1-3": "Very cool",
+            "A6NHQ2": "Semi-cool",
+            "Q9Y6R0": "Terrible",
+            "P09382": "Terrible",
         },
     },
 
@@ -50,7 +50,7 @@ c = ClusteredHeatMap(
 With this object `c`, you can visualize the clustered heatmap like this:
 
 ```python3
-from clusteredheatmap.chm import PlotlyVisuBuilder
+from clusteredheatmap.visu.plotly.builder import PlotlyVisuBuilder
 
 fig = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh").autobuild()
 fig.show()
@@ -61,6 +61,8 @@ You can however also use the visualization builder manually to get
 more control over visualization parameters. Example:
 
 ```python3
+from clusteredheatmap.visu.plotly.builder import PlotlyVisuBuilder
+
 b = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh")
 b.add_heatmap(zmin=-2.5, zmid=0, zmax=3.5)
 b.add_col_dendrogram()
