@@ -4,6 +4,11 @@ Written as part of a bachelor's thesis about distance estimation with missing va
 on hierarchical clustering of biomedical data.
 
 ## Usage
+Install the library by adding this line to your `requirements.txt`:
+```
+clusteredheatmap @ git+https://github.com/jorisfu/clusteredheatmap.git
+```
+
 You first need to create a `ClusteredHeatMap` object with the data you want to cluster:
 ```python3
 c = ClusteredHeatMap(
