@@ -10,7 +10,7 @@ sys.path.append(parent)
 import numpy as np
 import pandas as pd
 
-from clusteredheatmap.clustergram import ClusteredHeatMap
+from clusteredheatmap.chm import ClusteredHeatMap
 from clusteredheatmap.visu.plotly.builder import PlotlyVisuBuilder
 from clusteredheatmap.types import Vector
 

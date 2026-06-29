@@ -11,6 +11,8 @@ clusteredheatmap @ git+https://github.com/jorisfu/clusteredheatmap.git
 
 You first need to create a `ClusteredHeatMap` object with the data you want to cluster:
 ```python3
+from clusteredheatmap.chm import ClusteredHeatMap
+
 c = ClusteredHeatMap(
     df_wide, # This needs to be a pandas dataframe in wide format
     distance="nan_euclidean", # Various distances are supported. [TODO list]
@@ -48,6 +50,8 @@ c = ClusteredHeatMap(
 With this object `c`, you can visualize the clustered heatmap like this:
 
 ```python3
+from clusteredheatmap.chm import PlotlyVisuBuilder
+
 fig = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh").autobuild()
 fig.show()
 ```

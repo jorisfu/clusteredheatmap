@@ -2,7 +2,7 @@
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
-from clusteredheatmap.clustergram import ClusteredHeatMap
+from clusteredheatmap.chm import ClusteredHeatMap
 from clusteredheatmap.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
 
 import numpy as np
