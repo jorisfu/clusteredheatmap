@@ -1,7 +1,7 @@
 import sys, os
 
 
-sys.path.append("./glustercram")
+sys.path.append("./clusteredheatmap")
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -10,11 +10,11 @@ sys.path.append(parent)
 import numpy as np
 import pandas as pd
 
-from glustercram.clustergram import ClusteredHeatMap
-from glustercram.visu.plotly.builder import PlotlyVisuBuilder
-from glustercram.types import Vector
+from clusteredheatmap.clustergram import ClusteredHeatMap
+from clusteredheatmap.visu.plotly.builder import PlotlyVisuBuilder
+from clusteredheatmap.types import Vector
 
-from glustercram.algos import distance, linkage
+from clusteredheatmap.algos import distance, linkage
 
 points: list[Vector] = [
     (1, 1),

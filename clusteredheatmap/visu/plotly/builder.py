@@ -2,8 +2,8 @@
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
-from glustercram.clustergram import ClusteredHeatMap
-from glustercram.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
+from clusteredheatmap.clustergram import ClusteredHeatMap
+from clusteredheatmap.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
 
 import numpy as np
 

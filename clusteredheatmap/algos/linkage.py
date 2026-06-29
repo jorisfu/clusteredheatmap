@@ -1,7 +1,7 @@
 from typing import Literal
 
-from glustercram.algos.distance import DistFunName, get_distfun_for_scipy
-from glustercram.types import ClusteringFun, DistFun, LinkageFun
+from clusteredheatmap.algos.distance import DistFunName, get_distfun_for_scipy
+from clusteredheatmap.types import ClusteringFun, DistFun, LinkageFun
 import scipy
 
 LinkageFunName = Literal[

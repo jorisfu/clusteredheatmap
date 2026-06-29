@@ -3,7 +3,7 @@ from typing import Literal
 
 import scipy
 
-from glustercram.types import DistFun, Vector
+from clusteredheatmap.types import DistFun, Vector
 
 DistFunName = Literal["euclidean", "manhattan", "nan_euclidean"]
 SCIPY_SUPPORTED_DISTANCES = [""]

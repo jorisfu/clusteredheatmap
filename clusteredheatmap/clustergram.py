@@ -1,15 +1,15 @@
 # pyright: reportExplicitAny=false
 
-from glustercram.algos.distance import DistFunName
-from glustercram.algos.linkage import LinkageFunName
-from glustercram.types import (
+from clusteredheatmap.algos.distance import DistFunName
+from clusteredheatmap.algos.linkage import LinkageFunName
+from clusteredheatmap.types import (
     ClusteringFun,
     DistFun,
     HeatmapMatrix,
     LinkageFun,
 )
-import glustercram.algos.distance as dist
-import glustercram.algos.linkage as link
+import clusteredheatmap.algos.distance as dist
+import clusteredheatmap.algos.linkage as link
 import pandas as pd
 import scipy
 
