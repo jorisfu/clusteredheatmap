@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clusteredheatmap"
+version = "0.0.1"
+authors = [
+  { name="Joris Funk", email="joris.funk@student.hpi.uni-potsdam.de" },
+]
+description = "Tools for hierarchical clustering and clustered heat maps / clustergrams"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/jorisfu/clusteredheatmap"
+Issues = "https://github.com/jorisfu/clusteredheatmap/issues"
