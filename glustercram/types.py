@@ -21,6 +21,9 @@ HeatmapMatrix = npt.NDArray[np.float64]
 """ Plotly-compatible color definition"""
 Color = str
 
+""" Plotly-compatible colorscale definition """
+Colorscale = list[list[float | Color]]
+
 """ Point in 2D space, used for layouting """
 
 

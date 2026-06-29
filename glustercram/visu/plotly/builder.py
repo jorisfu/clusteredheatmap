@@ -2,29 +2,43 @@
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
+from glustercram.clustergram import ClusteredHeatMap
+from glustercram.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
 
 import numpy as np
 
-import plotly.colors
 from plotly.basedatatypes import BaseTraceType
-import plotly.express as px
 from plotly import subplots
 from plotly.graph_objs import Figure
-from glustercram.clustergram import ClusteredHeatMap
-from glustercram.types import Color, HeatmapMatrix, LayoutPoint
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 
+import plotly.colors
+from plotly.express.colors import qualitative as PLOTLY_COLORSCALES_QUALITATIVE
+
 
 class LayoutError(Exception):
+    """
+    Generic exception used for layouting issues
+    """
+
     pass
 
 
 class ColorError(Exception):
+    """
+    Generic exception used for issues concerning colors
+    """
+
     pass
 
 
 class SubplotType(StrEnum):
+    """
+    Supported subplots within the clustered heatmap visualization, each may only
+    be instantiated once at max.
+    """
+
     COL_DENDRO = "col_dendro"
     ROW_DENDRO = "row_dendro"
     COL_GROUPMARKERS = "col_groupmarkers"
@@ -38,12 +52,11 @@ DENDRO_AXES_LAYOUT = {
     "showticklabels": False,
 }
 
-DEFAULT_HEATMAP_COLORSCALE = [(0.0, "#FF0000"), (0.5, "#FFFFFF"), (1.0, "#0000FF")]
+DEFAULT_HEATMAP_COLORSCALE = [[0.0, "#FF0000"], [0.5, "#FFFFFF"], [1.0, "#0000FF"]]
 DENDRO_COLORSCALE = ["rgb(133,133,133)" for _ in range(8)]
 
 
 class PlotlyVisuBuilder:
-
     def __init__(
         self,
         chm: ClusteredHeatMap,
@@ -68,6 +81,7 @@ class PlotlyVisuBuilder:
             markers.
         :param horizontal_layout: Layout of elements on the horizontal axis of the plot.
             See vertical_layout for more info.
+        :param background_color: The background color of the plot
         """
 
         self.chm: ClusteredHeatMap = chm
@@ -75,35 +89,34 @@ class PlotlyVisuBuilder:
 
         self._validate_layout_string(vertical_layout)
         self._validate_layout_string(horizontal_layout)
+        self._vertical_layout: str = vertical_layout
+        self._horizontal_layout: str = horizontal_layout
 
-        self.vertical_layout: str = vertical_layout
-        self.horizontal_layout: str = horizontal_layout
-
-        self.subplot_rows: int = len(vertical_layout) or 1
-        self.subplot_cols: int = len(horizontal_layout) or 1
+        self._subplot_rows: int = len(vertical_layout) or 1
+        self._subplot_cols: int = len(horizontal_layout) or 1
 
         # Subplot positions are 1-based for plotly references
-        self.subplot_positions: dict[SubplotType, LayoutPoint] = self._build_layout(
+        self._subplot_positions: dict[SubplotType, LayoutPoint] = self._build_layout(
             horizontal_layout, vertical_layout
         )
 
-        self.fig: Figure = self._build_figure()
-        _ = self.fig.update_layout(plot_bgcolor=background_color, showlegend=False)
+        self._fig: Figure = self._build_figure()
+        _ = self._fig.update_layout(plot_bgcolor=background_color, showlegend=False)
 
         # Need to save these for axes synchronization
         self._heatmap_x_id = next(
-            self.fig.select_xaxes(
-                **self.subplot_positions[SubplotType.HEATMAP]._asdict()
+            self._fig.select_xaxes(
+                **self._subplot_positions[SubplotType.HEATMAP]._asdict()
             )
         ).plotly_name.replace("axis", "")
         self._heatmap_y_id = next(
-            self.fig.select_yaxes(
-                **self.subplot_positions[SubplotType.HEATMAP]._asdict()
+            self._fig.select_yaxes(
+                **self._subplot_positions[SubplotType.HEATMAP]._asdict()
             )
         ).plotly_name.replace("axis", "")
 
         # Used for group markers if no custom colors are given
-        self.distinct_colorgen: Generator[Color] = self._default_distinct_colorgen()
+        self._distinct_colorgen: Generator[Color] = self._default_distinct_colorgen()
 
         # Required for size/pos of colorbars
         self._colorbar_amount: int = (
@@ -119,10 +132,12 @@ class PlotlyVisuBuilder:
     def autobuild(self) -> Figure:
         """
         Automatically builds a clustered heatmap visualization using sane defaults.
+
+        :return: Plotly figure with the clustered heatmap
         """
         self.add_heatmap()
 
-        for char in self.vertical_layout:
+        for char in self._vertical_layout:
             match char:
                 case "d":
                     self.add_col_dendrogram()
@@ -131,7 +146,7 @@ class PlotlyVisuBuilder:
                 case _:
                     pass
 
-        for char in self.horizontal_layout:
+        for char in self._horizontal_layout:
             match char:
                 case "d":
                     self.add_row_dendrogram()
@@ -143,9 +158,13 @@ class PlotlyVisuBuilder:
         return self.get_figure()
 
     def get_figure(self) -> Figure:
+        """
+        Returns the constructed figure. ALWAYS use this instead of accessing
+        _fig directly to obtain a proper layout.
+        """
         # For performance reasons we only do this right before returning the fully constructed figure
         self._apply_display_ratios()
-        return self.fig
+        return self._fig
 
     ##
     ## LAYOUT AND DISPLAY
@@ -174,6 +193,11 @@ class PlotlyVisuBuilder:
     def _build_layout(
         self, horizontal_layout: str, vertical_layout: str
     ) -> dict[SubplotType, LayoutPoint]:
+        """
+        From the given layout strings (see docstring in __init__), construct
+        a subplot_positions dict mapping the subplot types to their
+        layout points.
+        """
         subplot_positions: dict[SubplotType, LayoutPoint] = dict()
 
         heatmap_position = LayoutPoint(
@@ -212,33 +236,46 @@ class PlotlyVisuBuilder:
         return subplot_positions
 
     def _build_figure(self) -> Figure:
+        """
+        Constructs a figure with correctly aligned subplots from the _subplot_positions dict
+        """
         specs: list[list[None | dict[str, Any]]] = [
-            [None for _ in range(self.subplot_cols)] for _ in range(self.subplot_rows)
+            [None for _ in range(self._subplot_cols)] for _ in range(self._subplot_rows)
         ]
 
-        for subplot, pos in self.subplot_positions.items():
+        for pos in self._subplot_positions.values():
             specs[pos.row - 1][pos.col - 1] = dict()
 
         return subplots.make_subplots(
-            rows=self.subplot_rows,
-            cols=self.subplot_cols,
+            rows=self._subplot_rows,
+            cols=self._subplot_cols,
             specs=specs,
             vertical_spacing=0.0,
             horizontal_spacing=0.0,
         )
 
-    def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint):
+    def _sync_to_heatmap(self, axis: Literal["x", "y"], pos: LayoutPoint) -> None:
+        """
+        Synchronizes an axis of a subplot with the corresponding axis from the heatmap.
+
+        :param axis: "x" or "y" depending on which axis to sync
+        :param pos: The position of the subplot to synchronize
+        """
         match axis:
             case "x":
-                _ = self.fig.update_xaxes(matches=self._heatmap_x_id, **pos._asdict())
+                _ = self._fig.update_xaxes(matches=self._heatmap_x_id, **pos._asdict())
             case "y":
-                _ = self.fig.update_yaxes(matches=self._heatmap_y_id, **pos._asdict())
+                _ = self._fig.update_yaxes(matches=self._heatmap_y_id, **pos._asdict())
 
     def _apply_display_ratios(self):
+        """
+        From the relative widths and height for each subplot (_relative_subplot_widths and _relative_subplot_heights),
+        construct and apply x and y normalized domain ranges for each subplot (what plotly needs for proper layouting)
+        """
         y_layout_ratios: list[int] = []
         x_layout_ratios: list[int] = []
 
-        for char in self.vertical_layout:
+        for char in self._vertical_layout:
             match char:
                 case "d":
                     y_layout_ratios.append(
@@ -257,7 +294,7 @@ class PlotlyVisuBuilder:
                 case _:
                     pass
 
-        for char in self.horizontal_layout:
+        for char in self._horizontal_layout:
             match char:
                 case "d":
                     x_layout_ratios.append(
@@ -295,12 +332,12 @@ class PlotlyVisuBuilder:
         y_domains = get_layout_domain_ratios(y_layout_ratios)[::-1]
         x_domains = get_layout_domain_ratios(x_layout_ratios)
 
-        for row in range(self.subplot_rows):
-            for col in range(self.subplot_cols):
-                _ = self.fig.update_yaxes(
+        for row in range(self._subplot_rows):
+            for col in range(self._subplot_cols):
+                _ = self._fig.update_yaxes(
                     row=row + 1, col=col + 1, domain=y_domains[row]
                 )
-                _ = self.fig.update_xaxes(
+                _ = self._fig.update_xaxes(
                     row=row + 1, col=col + 1, domain=x_domains[col]
                 )
 
@@ -310,13 +347,17 @@ class PlotlyVisuBuilder:
 
     # TODO: Parametrize
     def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
-        return (y for y in px.colors.qualitative.Bold)
+        return (y for y in PLOTLY_COLORSCALES_QUALITATIVE.Bold)
 
-    def _new_colorbar(self, **kwargs: Any):
+    def _colorbar_position_generator(self, total_amount: int):
+        for i in range(total_amount):
+            yield i / total_amount
+
+    def _new_colorbar(self, **kwargs: Any) -> dict[str, Any]:
         """
         Returns a dict specifying a new colorbar legend.
         Position, size and anchor get handled by this,
-        all other parameters can be freely passed
+        all other parameters can be freely passed via kwargs
         """
         return dict(
             yanchor="bottom",
@@ -326,37 +367,33 @@ class PlotlyVisuBuilder:
             **kwargs,
         )
 
-    def _colorbar_position_generator(self, total_amount: int):
-        for i in range(total_amount):
-            yield i / total_amount
-
     ##
     ## HEATMAP AND CONTINUOUS COLORSCALES
     ##
 
     def _build_asymmetric_colorscale(
         self,
-        _colorscale: str | list[tuple[float, Color]],
+        _colorscale: str | Colorscale,
         zmin: float,
         zmax: float,
         zmid: float,
-    ):
+    ) -> Colorscale:
         """
         Adjusts a divergent colorscale for a heatmap.
         The colors are redistributed to allow for asymmetry according
         to the data thresholds given.
         Note that just passing zmid to plotly's heatmap does not work like this, hence
-        this implementation
+        this custom implementation.
 
         :param _colorscale: Either the colorscale to adjust or the name of the plotly
             colorscale to use.
-        :param zmin: the data value corresponding to the minimum value (0.0) of the colorscale
-        :param zmid: the data value corresponding to the center of the colorscale.
+        :param zmin: the data z-value corresponding to the minimum value (0.0) of the colorscale
+        :param zmid: the data z-value corresponding to the center of the colorscale.
             The resulting colorscale's center point will be adjusted to this.
-        :param zmax: the data value corresponding to the maximum value (1.0) of the colorscale
+        :param zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
         """
 
-        colorscale: list[list[float | Color]] | list[tuple[float, Color]] = []
+        colorscale: Colorscale = []
         if isinstance(_colorscale, str):
             colorscale = plotly.colors.get_colorscale(_colorscale)
         else:
@@ -369,7 +406,7 @@ class PlotlyVisuBuilder:
 
         color_midpoint = (zmid - zmin) / (zmax - zmin)
 
-        new_colorscale = []
+        new_colorscale: Colorscale = []
         for tick in filter(lambda tick: tick[0] <= 0.5, colorscale):
             adjusted_tick_base = lerp(0, color_midpoint, tick[0] / 0.5)
             new_colorscale.append((adjusted_tick_base, tick[1]))
@@ -388,11 +425,30 @@ class PlotlyVisuBuilder:
         relative_width: int = 80,
         relative_height: int = 80,
         nan_color: Color = "#000000",
-        colorscale: str | list[tuple[float, Color]] | None = None,
+        colorscale: str | Colorscale | None = None,
         zmin: float | None = None,
         zmax: float | None = None,
         zmid: float | None = None,
     ) -> None:
+        """
+        Adds the heatmap to the visualization.
+
+        :param relative_height: Relative height of the heatmap subplot within the visualization
+        :param relative_width: Relative width of the heatmap subplot within the visualization
+        :param nan_color: The color for heatmap cells corresponding to z-values of NaN (missing values)
+        :param colorscale: The colorscale to use. May be either
+            a string (name of one of the default plotly colorscales, see https://plotly.com/python/builtin-colorscales/) or
+            a custom colorscale (list like [[0.0, "#000000"], [0.5, "#fce300"], [1.0, "#abccba"]]) or
+            None, in which case a default red-white-blue colorscale is used.
+            Note that custom colorscales MUST include a color value at 0.5 (midpoint) for layouting reasons
+        :param zmin: the data z-value corresponding to the minimum value (0.0) of the colorscale.
+            Cells with z-values lower than this will use the lowest color.
+        :param zmid: the data z-value corresponding to the center of the colorscale.
+            The resulting colorscale's center point will be adjusted to this.
+        :param zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
+            Cells with z-values higher than this will use the highest color.
+        """
+
         def generate_background_map(
             data: HeatmapMatrix, nan_color: Color
         ) -> BaseTraceType:
@@ -419,7 +475,7 @@ class PlotlyVisuBuilder:
 
             return background_map
 
-        target_position = self.subplot_positions[SubplotType.HEATMAP]
+        target_position = self._subplot_positions[SubplotType.HEATMAP]
 
         ## Colorscale calculation
         if zmin is None:
@@ -479,11 +535,11 @@ class PlotlyVisuBuilder:
         self.helpers.update_xyaxes(target_position, showticklabels=False)
 
         # Required to align with dendrograms
-        _ = self.fig.update_xaxes(
+        _ = self._fig.update_xaxes(
             range=[-0.5, len(self.chm.permuted_column_labels) - 0.5],
             **target_position._asdict(),
         )
-        _ = self.fig.update_yaxes(
+        _ = self._fig.update_yaxes(
             range=[-0.5, len(self.chm.permuted_row_labels) - 0.5],
             **target_position._asdict(),
         )
@@ -495,21 +551,33 @@ class PlotlyVisuBuilder:
     ## DENDROGRAMS
     ##
 
-    def add_col_dendrogram(self, relative_height: int = 30, color_threshold: int = 0, colorscale: list[Color] = DENDRO_COLORSCALE):
+    def add_col_dendrogram(
+        self,
+        relative_height: int = 30,
+        color_threshold: int = 0,
+        colorscale: list[Color] = DENDRO_COLORSCALE,
+    ):
+        """
+        Adds the dendrogram visualizing the clustering of the data columns to the visualization.
+
+        :param relative_height: Relative height of the dendrogram subplot within the visualization
+        :param color_threshold: [TODO docstring]
+        :param colorscale: [TODO docstring]
+        """
         if not self.chm.cluster_columns:
             raise ValueError(
                 "Columns were not clustered, no dendrogram can be plotted."
             )
 
-        target_position = self.subplot_positions[SubplotType.COL_DENDRO]
+        target_position = self._subplot_positions[SubplotType.COL_DENDRO]
 
-        if "d" not in self.vertical_layout:
+        if "d" not in self._vertical_layout:
             raise LayoutError(
                 "Cannot add column dendrogram as position is not specified in layout"
             )
         orientation = (
             "bottom"
-            if self.vertical_layout.index("d") < self.vertical_layout.index("h")
+            if self._vertical_layout.index("d") < self._vertical_layout.index("h")
             else "top"
         )
 
@@ -534,19 +602,31 @@ class PlotlyVisuBuilder:
         self._sync_to_heatmap("x", target_position)
         self._relative_subplot_heights[SubplotType.COL_DENDRO] = relative_height
 
-    def add_row_dendrogram(self, relative_width: int = 30, color_threshold: int = 0, colorscale: list[Color] = DENDRO_COLORSCALE):
+    def add_row_dendrogram(
+        self,
+        relative_width: int = 30,
+        color_threshold: int = 0,
+        colorscale: list[Color] = DENDRO_COLORSCALE,
+    ):
+        """
+        Adds the dendrogram visualizing the clustering of the data rows to the visualization.
+
+        :param relative_width: Relative width of the dendrogram subplot within the visualization
+        :param color_threshold: [TODO docstring]
+        :param colorscale: [TODO docstring]
+        """
         if not self.chm.cluster_rows:
             raise ValueError("Rows were not clustered, no dendrogram can be plotted.")
 
-        target_position = self.subplot_positions[SubplotType.ROW_DENDRO]
+        target_position = self._subplot_positions[SubplotType.ROW_DENDRO]
 
-        if "d" not in self.horizontal_layout:
+        if "d" not in self._horizontal_layout:
             raise LayoutError(
                 "Cannot add row dendrogram as position is not specified in layout"
             )
         orientation = (
             "right"
-            if self.horizontal_layout.index("d") < self.horizontal_layout.index("h")
+            if self._horizontal_layout.index("d") < self._horizontal_layout.index("h")
             else "left"
         )
 
@@ -586,7 +666,7 @@ class PlotlyVisuBuilder:
         groups_on_axis: int = 1,
         group_no: int = 0,
         is_vertical: bool = False,
-    ):
+    ) -> BaseTraceType:
         """
         Creates a trace used for group markers.
 
@@ -642,7 +722,7 @@ class PlotlyVisuBuilder:
             if group_to_color is not None:
                 color = group_to_color[group]
             else:
-                color = next(self.distinct_colorgen)
+                color = next(self._distinct_colorgen)
             # Imitate discrete scale by using thresholds of size 0.0
             step_low = idx / amount_of_groups
             step_high = (idx + 1) / amount_of_groups
@@ -671,17 +751,17 @@ class PlotlyVisuBuilder:
         self,
         relative_height_per_marker: int = 2,
         _color_overrides: dict[str, dict[str, Color]] | None = None,
-    ):
+    ) -> None:
         """
-        Adds group markers per column.
+        Adds group markers per column to the visualization.
 
         :param relative_height_per_marker: visual height of each group marker (relative to entire plot)
         :param _color_overrides: custom colors for groups. Mapping is performed from the name of the mapping
-            (see column_group_mappings in ClusteredHeatMap) to a dict mapping each group to a specific color.
+            (see _column_group_mappings in ClusteredHeatMap) to a dict mapping each group to a specific color.
             Color mapping must be complete for all groups to override.
             If no mapping is specified, the default color generator gets used.
         """
-        target_position: LayoutPoint = self.subplot_positions[
+        target_position: LayoutPoint = self._subplot_positions[
             SubplotType.COL_GROUPMARKERS
         ]
         color_overrides = _color_overrides or dict()
@@ -710,7 +790,7 @@ class PlotlyVisuBuilder:
         _color_overrides: dict[str, dict[str, Color]] | None = None,
     ):
         """
-        Adds group markers per column.
+        Adds group markers per row to the visualization.
 
         :param relative_width_per_marker: visual width of each group marker (relative to entire plot)
         :param _color_overrides: custom colors for groups. Mapping is performed from the name of the mapping
@@ -718,7 +798,7 @@ class PlotlyVisuBuilder:
             Color mapping must be complete for all groups to override.
             If no mapping is specified, the default color generator gets used.
         """
-        target_position: LayoutPoint = self.subplot_positions[
+        target_position: LayoutPoint = self._subplot_positions[
             SubplotType.ROW_GROUPMARKERS
         ]
         color_overrides = _color_overrides or dict()
@@ -748,13 +828,13 @@ class PlotlyHelpers:
         self._builder: PlotlyVisuBuilder = builder
 
     def add_trace(self, trace: BaseTraceType, pos: LayoutPoint) -> None:
-        _ = self._builder.fig.add_trace(trace, pos.row, pos.col)
+        _ = self._builder._fig.add_trace(trace, pos.row, pos.col)
 
     def add_tracelist(self, pos: LayoutPoint, traces: list[BaseTraceType]):
         """
         Adds multiple traces to the same subplot
         """
-        _ = self._builder.fig.add_traces(
+        _ = self._builder._fig.add_traces(
             traces,
             rows=[pos.row] * len(traces),
             cols=[pos.col] * len(traces),
@@ -764,8 +844,8 @@ class PlotlyHelpers:
         """
         Updates x and y axis layout args for a subplot
         """
-        _ = self._builder.fig.update_xaxes(row=pos.row, col=pos.col, **kwargs)
-        _ = self._builder.fig.update_yaxes(row=pos.row, col=pos.col, **kwargs)
+        _ = self._builder._fig.update_xaxes(row=pos.row, col=pos.col, **kwargs)
+        _ = self._builder._fig.update_yaxes(row=pos.row, col=pos.col, **kwargs)
 
 
 def lerp(start: float, end: float, alpha: float) -> float:

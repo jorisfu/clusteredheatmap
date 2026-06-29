@@ -1,41 +1,17 @@
 # pyright: reportExplicitAny=false
 
-from multiprocessing import current_process
-from typing import Any
-
-from plotly.graph_objs import Figure
 from glustercram.algos.distance import DistFunName
 from glustercram.algos.linkage import LinkageFunName
-from glustercram.dendrogram import Dendrogram
 from glustercram.types import (
     ClusteringFun,
-    Color,
     DistFun,
     HeatmapMatrix,
-    LayoutPoint,
     LinkageFun,
 )
-from glustercram.visu.heatmap import heatmap
 import glustercram.algos.distance as dist
 import glustercram.algos.linkage as link
 import pandas as pd
-import numpy as np
 import scipy
-
-import plotly.graph_objects as go
-import plotly.express as px
-import plotly.figure_factory as ff
-from plotly import subplots
-
-
-class Counter:
-    def __init__(self) -> None:
-        self.value: int = 0
-
-    def next(self) -> int:
-        tmp = self.value
-        self.value += 1
-        return tmp
 
 
 class ClusteredHeatMap:

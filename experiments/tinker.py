@@ -64,21 +64,10 @@ c = ClusteredHeatMap(
     data_row_title="Protein",
 )
 
-# fig = c.get_visualization_plotly(
-#     heatmap_kwargs={
-#         "colorscale": [[0, "#FF0000"], [0.5, "#FFFFFF"], [1, "#0000FF"]],
-#         "zmin": -2.5,
-#         "zmid": 0,
-#         "zmax": 3.5,
-#     },
-# )
-#
-# fig.show()
-
 b = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh")
 b.add_heatmap(zmin=-2.5, zmid=0, zmax=3.5)
 b.add_col_dendrogram()
-b.add_row_dendrogram(color_threshold=None)
+b.add_row_dendrogram()
 b.add_col_group_markers(_color_overrides={"Age": {"<65": "#FCE300", ">65": "#ABD310"}})
 b.add_row_group_markers(
     _color_overrides={
