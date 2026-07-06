@@ -424,7 +424,7 @@ class PlotlyVisuBuilder:
         *,
         relative_width: int = 80,
         relative_height: int = 80,
-        nan_color: Color = "#000000",
+        nan_color: Color = "#616161",
         colorscale: str | Colorscale | None = None,
         zmin: float | None = None,
         zmax: float | None = None,
@@ -498,8 +498,7 @@ class PlotlyVisuBuilder:
         colorscale = self._build_asymmetric_colorscale(colorscale, zmin, zmax, zmid)
 
         ## Background map for NaNs
-        # TODO: Check here if we have nans in data
-        if True:
+        if np.any(np.isnan(self.chm.data_cols)):
             background_map = generate_background_map(self.chm.permuted_data, nan_color)
             self.helpers.add_trace(background_map, target_position)
 
