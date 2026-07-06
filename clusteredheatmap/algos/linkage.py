@@ -1,6 +1,6 @@
 from typing import Literal
 
-from clusteredheatmap.algos.distance import DistFunName, get_distfun_for_scipy
+from clusteredheatmap.algos.distance import DistFunName
 from clusteredheatmap.types import ClusteringFun, DistFun, LinkageFun
 import scipy
 
@@ -26,22 +26,14 @@ SCIPY_SUPPORTED_LINKAGES = [
 ]
 
 
-def get_preferred_implementation(
-    linkage: LinkageFunName | LinkageFun, distance: DistFunName | DistFun
-) -> ClusteringFun:
-    # TODO
-    if not isinstance(linkage, str):
-        raise ValueError("Custom linkage method not supported (yet)")
+def get_preferred_implementation(linkage: LinkageFunName | LinkageFun) -> LinkageFun:
+    if callable(linkage):
+        return linkage
 
     if linkage in SCIPY_SUPPORTED_LINKAGES:
-        distance_for_scipy = (
-            distance if callable(distance) else get_distfun_for_scipy(distance)
-        )
-
-        fun: ClusteringFun = lambda data: scipy.cluster.hierarchy.linkage(
-            data,
+        fun: LinkageFun = lambda distmat: scipy.cluster.hierarchy.linkage(
+            distmat,
             method=linkage,
-            metric=distance_for_scipy,
             optimal_ordering=False,
         )
 

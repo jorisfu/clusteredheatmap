@@ -41,14 +41,18 @@ _mapping: dict[DistFunName, DistFun] = {
 }
 
 
-def get_distfun_for_scipy(distance: DistFunName):
+def get_preferred_implementation(distance: DistFunName | DistFun) -> DistFunName | DistFun:
     """
     From a given name of a distance function to use, returns
     either the name of the function if supported by scipy or the
     implementation of the method if not
     """
 
-    if distance in SCIPY_SUPPORTED_DISTANCES:
+    if isinstance(distance, str):
+        if distance in SCIPY_SUPPORTED_DISTANCES:
+            return distance
+        else:
+            return _mapping[distance]
+
+    elif callable(distance):
         return distance
-    else:
-        return _mapping[distance]
