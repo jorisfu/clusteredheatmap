@@ -64,10 +64,10 @@ class ClusteredHeatMap:
         :param precomputed_dist_cols: Condensed distance matrix for distance between columns
             in the data. Overrides calculation if given. Must be in scipy condensed distance
             matrix format (see scipy.spatial.distance.pdist docs)
-        :param precomputed_linkage_rows: Linkage matrix for clustering between rows in the 
+        :param precomputed_linkage_rows: Linkage matrix for clustering between rows in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
-        :param precomputed_linkage_columns: Linkage matrix for clustering between columns in the 
+        :param precomputed_linkage_columns: Linkage matrix for clustering between columns in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
 
@@ -83,7 +83,9 @@ class ClusteredHeatMap:
         self.cluster_columns: bool = cluster_columns
 
         """ Linkage + Distance method that performs the clustering """
-        self.distance_method: DistFun | DistFunName = dist.get_preferred_implementation(distance)
+        self.distance_method: DistFun | DistFunName = dist.get_preferred_implementation(
+            distance
+        )
         self.linkage_method: LinkageFun = link.get_preferred_implementation(linkage)
 
         cols_permutation = list(range(len(self.data_cols)))
@@ -93,8 +95,15 @@ class ClusteredHeatMap:
         self.linkage_matrix_rows: ndarray | None = None
 
         if self.cluster_rows:
-            self.distance_matrix_rows = precomputed_dist_rows or scipy.spatial.distance.pdist(self.data_rows, metric=self.distance_method)
-            self.linkage_matrix_rows = precomputed_linkage_rows or self.linkage_method(self.distance_matrix_rows)
+            self.distance_matrix_rows = (
+                precomputed_dist_rows
+                or scipy.spatial.distance.pdist(
+                    self.data_rows, metric=self.distance_method
+                )
+            )
+            self.linkage_matrix_rows = precomputed_linkage_rows or self.linkage_method(
+                self.distance_matrix_rows
+            )
 
             self.linkage_matrix_rows = scipy.cluster.hierarchy.optimal_leaf_ordering(
                 self.linkage_matrix_rows, self.distance_matrix_rows
@@ -107,8 +116,15 @@ class ClusteredHeatMap:
         self.distance_matrix_cols: ndarray | None = None
         self.linkage_matrix_cols: ndarray | None = None
         if self.cluster_columns:
-            self.distance_matrix_cols = precomputed_dist_cols or scipy.spatial.distance.pdist(self.data_cols, metric=self.distance_method)
-            self.linkage_matrix_cols = precomputed_linkage_cols or self.linkage_method(self.distance_matrix_cols)
+            self.distance_matrix_cols = (
+                precomputed_dist_cols
+                or scipy.spatial.distance.pdist(
+                    self.data_cols, metric=self.distance_method
+                )
+            )
+            self.linkage_matrix_cols = precomputed_linkage_cols or self.linkage_method(
+                self.distance_matrix_cols
+            )
 
             self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
                 self.linkage_matrix_cols, self.distance_matrix_cols
@@ -134,15 +150,25 @@ class ClusteredHeatMap:
             row_group_mappings if row_group_mappings is not None else dict()
         )
 
-        self.permuted_row_fulldescriptions: list[str] = stringify_labels_with_group_mappings(self.permuted_row_labels, self.row_group_mappings)
-        self.permuted_col_fulldescriptions: list[str] = stringify_labels_with_group_mappings(self.permuted_column_labels, self.column_group_mappings)
+        self.permuted_row_fulldescriptions: list[str] = (
+            stringify_labels_with_group_mappings(
+                self.permuted_row_labels, self.row_group_mappings
+            )
+        )
+        self.permuted_col_fulldescriptions: list[str] = (
+            stringify_labels_with_group_mappings(
+                self.permuted_column_labels, self.column_group_mappings
+            )
+        )
 
         self.data_row_title: str = data_row_title
         self.data_column_title: str = data_column_title
         self.data_z_title: str = data_z_title
 
 
-def stringify_labels_with_group_mappings(labels: list[str], mappings: dict[str, dict[str, str]]):
+def stringify_labels_with_group_mappings(
+    labels: list[str], mappings: dict[str, dict[str, str]]
+):
     strings: list[str] = []
     for label in labels:
         groups = ""

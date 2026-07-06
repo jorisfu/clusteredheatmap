@@ -41,7 +41,9 @@ _mapping: dict[DistFunName, DistFun] = {
 }
 
 
-def get_preferred_implementation(distance: DistFunName | DistFun) -> DistFunName | DistFun:
+def get_preferred_implementation(
+    distance: DistFunName | DistFun,
+) -> DistFunName | DistFun:
     """
     From a given name of a distance function to use, returns
     either the name of the function if supported by scipy or the

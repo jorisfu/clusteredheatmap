@@ -511,7 +511,9 @@ class PlotlyVisuBuilder:
                 case "mean":
                     zmid = float(np.nanmean(self.chm.data_cols))
                 case _:
-                    raise ValueError(f"Illegal zmid string '{zmid}'. Refer to docstring for supported arguments.")
+                    raise ValueError(
+                        f"Illegal zmid string '{zmid}'. Refer to docstring for supported arguments."
+                    )
 
         if not (zmin <= zmid <= zmax):
             raise ValueError(
@@ -851,7 +853,9 @@ class PlotlyVisuBuilder:
     ## TICKS
     ##
 
-    def add_col_ticks(self, anchor_subplot: Literal['d', 'g', 'h'], side: Literal['top', 'bottom']) -> None:
+    def add_col_ticks(
+        self, anchor_subplot: Literal["d", "g", "h"], side: Literal["top", "bottom"]
+    ) -> None:
         """
         Adds the columns labels as ticks to the plot.
 
@@ -861,17 +865,16 @@ class PlotlyVisuBuilder:
             'top' or 'bottom'.
         """
         match anchor_subplot:
-            case 'd':
+            case "d":
                 target_position = self._subplot_positions[SubplotType.COL_DENDRO]
-            case 'g':
+            case "g":
                 target_position = self._subplot_positions[SubplotType.COL_GROUPMARKERS]
-            case 'h':
+            case "h":
                 target_position = self._subplot_positions[SubplotType.HEATMAP]
-
 
         _ = self._fig.update_xaxes(
             **target_position._asdict(),
-            tickmode='array',
+            tickmode="array",
             tickvals=list(range(len(self.chm.permuted_column_labels))),
             ticktext=self.chm.permuted_column_labels,
             showticklabels=True,
@@ -879,7 +882,9 @@ class PlotlyVisuBuilder:
             side=side,
         )
 
-    def add_row_ticks(self, anchor_subplot: Literal['d', 'g', 'h'], side: Literal['left', 'right']) -> None:
+    def add_row_ticks(
+        self, anchor_subplot: Literal["d", "g", "h"], side: Literal["left", "right"]
+    ) -> None:
         """
         Adds the columns labels as ticks to the plot.
 
@@ -889,17 +894,16 @@ class PlotlyVisuBuilder:
             'left' or 'right'.
         """
         match anchor_subplot:
-            case 'd':
+            case "d":
                 target_position = self._subplot_positions[SubplotType.ROW_DENDRO]
-            case 'g':
+            case "g":
                 target_position = self._subplot_positions[SubplotType.ROW_GROUPMARKERS]
-            case 'h':
+            case "h":
                 target_position = self._subplot_positions[SubplotType.HEATMAP]
-
 
         _ = self._fig.update_yaxes(
             **target_position._asdict(),
-            tickmode='array',
+            tickmode="array",
             tickvals=list(range(len(self.chm.permuted_row_labels))),
             ticktext=self.chm.permuted_row_labels,
             showticklabels=True,
