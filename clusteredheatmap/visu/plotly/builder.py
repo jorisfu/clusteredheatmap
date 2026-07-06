@@ -847,6 +847,66 @@ class PlotlyVisuBuilder:
             relative_width_per_marker * len(self.chm.row_group_mappings)
         )
 
+    ##
+    ## TICKS
+    ##
+
+    def add_col_ticks(self, anchor_subplot: Literal['d', 'g', 'h'], side: Literal['top', 'bottom']) -> None:
+        """
+        Adds the columns labels as ticks to the plot.
+
+        :param anchor_subplot: Which subplot to attach the ticks to. Can be either
+            'd', 'g' or 'h' as in the vertical layout string.
+        :param side: Which side to attach the ticks to. Can be either
+            'top' or 'bottom'.
+        """
+        match anchor_subplot:
+            case 'd':
+                target_position = self._subplot_positions[SubplotType.COL_DENDRO]
+            case 'g':
+                target_position = self._subplot_positions[SubplotType.COL_GROUPMARKERS]
+            case 'h':
+                target_position = self._subplot_positions[SubplotType.HEATMAP]
+
+
+        _ = self._fig.update_xaxes(
+            **target_position._asdict(),
+            tickmode='array',
+            tickvals=list(range(len(self.chm.permuted_column_labels))),
+            ticktext=self.chm.permuted_column_labels,
+            showticklabels=True,
+            visible=True,
+            side=side,
+        )
+
+    def add_row_ticks(self, anchor_subplot: Literal['d', 'g', 'h'], side: Literal['left', 'right']) -> None:
+        """
+        Adds the columns labels as ticks to the plot.
+
+        :param anchor_subplot: Which subplot to attach the ticks to. Can be either
+            'd', 'g' or 'h' as in the horizontal layout string.
+        :param side: Which side to attach the ticks to. Can be either
+            'left' or 'right'.
+        """
+        match anchor_subplot:
+            case 'd':
+                target_position = self._subplot_positions[SubplotType.ROW_DENDRO]
+            case 'g':
+                target_position = self._subplot_positions[SubplotType.ROW_GROUPMARKERS]
+            case 'h':
+                target_position = self._subplot_positions[SubplotType.HEATMAP]
+
+
+        _ = self._fig.update_yaxes(
+            **target_position._asdict(),
+            tickmode='array',
+            tickvals=list(range(len(self.chm.permuted_row_labels))),
+            ticktext=self.chm.permuted_row_labels,
+            showticklabels=True,
+            visible=True,
+            side=side,
+        )
+
 
 class PlotlyHelpers:
     def __init__(self, builder: PlotlyVisuBuilder) -> None:
