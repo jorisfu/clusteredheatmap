@@ -626,6 +626,9 @@ class PlotlyVisuBuilder:
 
         self.helpers.add_tracelist(target_position, cols_dendro_traces)
         self.helpers.update_xyaxes(target_position, **DENDRO_AXES_LAYOUT)
+        self._fig.update_yaxes(
+            **target_position._asdict(), range=[0, None][::invert_scale]
+        )
         self._sync_to_heatmap("x", target_position)
         self._relative_subplot_heights[SubplotType.COL_DENDRO] = relative_height
 
