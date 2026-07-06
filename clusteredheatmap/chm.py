@@ -134,6 +134,26 @@ class ClusteredHeatMap:
             row_group_mappings if row_group_mappings is not None else dict()
         )
 
+        self.permuted_row_fulldescriptions: list[str] = stringify_labels_with_group_mappings(self.permuted_row_labels, self.row_group_mappings)
+        self.permuted_col_fulldescriptions: list[str] = stringify_labels_with_group_mappings(self.permuted_column_labels, self.column_group_mappings)
+
         self.data_row_title: str = data_row_title
         self.data_column_title: str = data_column_title
         self.data_z_title: str = data_z_title
+
+
+def stringify_labels_with_group_mappings(labels: list[str], mappings: dict[str, dict[str, str]]):
+    strings: list[str] = []
+    for label in labels:
+        groups = ""
+        for group_name, mapping in mappings.items():
+            group = mapping.get(label)
+            if group is not None:
+                groups += group_name + " " + group + ", "
+        if len(groups) > 0:
+            groups = groups[:-2]
+            groups = " (" + groups + ")"
+
+        strings.append(label + groups)
+
+    return strings

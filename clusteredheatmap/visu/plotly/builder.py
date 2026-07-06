@@ -532,10 +532,10 @@ class PlotlyVisuBuilder:
         # TODO: Generalise this and cast all groupings
         # So we can get group info in tooltip?
         col_label_matrix = np.broadcast_to(
-            self.chm.permuted_column_labels, self.chm.permuted_data.shape
+            self.chm.permuted_col_fulldescriptions, self.chm.permuted_data.shape
         )
         row_label_matrix = np.broadcast_to(
-            np.array(self.chm.permuted_row_labels)[:, None],
+            np.array(self.chm.permuted_row_fulldescriptions)[:, None],
             self.chm.permuted_data.shape,
         )
 
