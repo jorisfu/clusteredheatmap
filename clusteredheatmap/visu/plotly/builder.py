@@ -2,6 +2,8 @@
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
+from optype.inspect import is_iterable
+
 from clusteredheatmap.chm import ClusteredHeatMap
 from clusteredheatmap.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
 
@@ -426,9 +428,9 @@ class PlotlyVisuBuilder:
         relative_height: int = 80,
         nan_color: Color = "#616161",
         colorscale: str | Colorscale | None = None,
-        zmin: float | None = None,
-        zmax: float | None = None,
-        zmid: float | None = None,
+        _zmin: float | str | None = None,
+        _zmax: float | str | None = None,
+        _zmid: float | str | None = None,
     ) -> None:
         """
         Adds the heatmap to the visualization.
@@ -441,11 +443,14 @@ class PlotlyVisuBuilder:
             a custom colorscale (list like [[0.0, "#000000"], [0.5, "#fce300"], [1.0, "#abccba"]]) or
             None, in which case a default red-white-blue colorscale is used.
             Note that custom colorscales MUST include a color value at 0.5 (midpoint) for layouting reasons
-        :param zmin: the data z-value corresponding to the minimum value (0.0) of the colorscale.
+        :param _zmin: the data z-value corresponding to the minimum value (0.0) of the colorscale.
             Cells with z-values lower than this will use the lowest color.
-        :param zmid: the data z-value corresponding to the center of the colorscale.
+        :param _zmid: the data z-value corresponding to the center of the colorscale.
             The resulting colorscale's center point will be adjusted to this.
-        :param zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
+            The following strings are also supported:
+                "mean": midpoint is the mean of all data points
+                "median": midpoint is the median of all data points
+        :param _zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
             Cells with z-values higher than this will use the highest color.
         """
 
@@ -478,14 +483,35 @@ class PlotlyVisuBuilder:
         target_position = self._subplot_positions[SubplotType.HEATMAP]
 
         ## Colorscale calculation
-        if zmin is None:
+        zmin: float = 0.0
+        if _zmin is None:
             zmin = float(np.nanmin(self.chm.permuted_data))
+        elif isinstance(_zmin, float):
+            zmin = _zmin
+        elif isinstance(_zmin, str):
+            raise ValueError("zmin as string not yet supported")
 
-        if zmax is None:
+        zmax: float = 0.0
+        if _zmax is None:
             zmax = float(np.nanmax(self.chm.permuted_data))
+        elif isinstance(_zmax, float):
+            zmax = _zmax
+        elif isinstance(_zmax, str):
+            raise ValueError("zmax as string not yet supported")
 
-        if zmid is None:
+        zmid: float = 0.0
+        if _zmid is None:
             zmid = np.average([zmin, zmax])
+        elif isinstance(_zmid, float):
+            zmid = _zmid
+        elif isinstance(_zmid, str):
+            match _zmid:
+                case "median":
+                    zmid = float(np.nanmedian(self.chm.data_cols))
+                case "mean":
+                    zmid = float(np.nanmean(self.chm.data_cols))
+                case _:
+                    raise ValueError(f"Illegal zmid string '{zmid}'. Refer to docstring for supported arguments.")
 
         if not (zmin <= zmid <= zmax):
             raise ValueError(
