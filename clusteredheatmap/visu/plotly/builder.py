@@ -2,8 +2,6 @@
 from enum import StrEnum
 from typing import Any, Generator, Literal
 
-from optype.inspect import is_iterable
-
 from clusteredheatmap.chm import ClusteredHeatMap
 from clusteredheatmap.types import Color, Colorscale, HeatmapMatrix, LayoutPoint
 
