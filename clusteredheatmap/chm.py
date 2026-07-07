@@ -1,6 +1,5 @@
 # pyright: reportExplicitAny=false
 
-from os import pread
 from typing import Any
 
 from numpy import ndarray

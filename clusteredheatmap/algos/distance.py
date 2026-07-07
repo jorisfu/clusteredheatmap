@@ -13,12 +13,10 @@ def euclidean(a: Vector, b: Vector) -> np.float64:
     return np.float64(np.linalg.norm(np.subtract(a, b)))
 
 
-def nan_euclidean(a: Vector, b: Vector) -> np.float64:
+def euclidean_pds(a: Vector, b: Vector) -> np.float64:
     """
-    Literally the simplest approach, just mask the NaN parts and compute the distance from the rest.
-    Same thing that https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.nan_euclidean_distances.html does
-
-    TODO: Look at their citation
+    Partial Distance Strategy as proposed by Dixon. See 
+    
     """
     nan_mask = np.isnan(a) | np.isnan(b)
     weight = len(nan_mask) / (len(nan_mask) - sum(nan_mask))
@@ -29,6 +27,15 @@ def nan_euclidean(a: Vector, b: Vector) -> np.float64:
     d = scipy.spatial.distance.sqeuclidean(masked_a, masked_b)
     return np.float64(np.sqrt(weight * d))
 
+def mesquita_expected_euclidean(a: Vector, b: Vector) -> np.float64:
+    """
+    Expected Euclidean Distance as proposed by Mesquita et al. See http://dx.doi.org/10.1016/j.neucom.2016.12.081
+
+    Assumes distances are Nakagami-distributed. Data distribution modeled via a Gaussian mixture distribution.
+    """
+
+    # TODO
+    return np.float64(0.0)
 
 def manhattan(a: Vector, b: Vector) -> np.float64:
     return np.float64(np.subtract(a, b).sum())
@@ -37,7 +44,7 @@ def manhattan(a: Vector, b: Vector) -> np.float64:
 _mapping: dict[DistFunName, DistFun] = {
     "euclidean": euclidean,
     "manhattan": manhattan,
-    "nan_euclidean": nan_euclidean,
+    "nan_euclidean": euclidean_pds,
 }
 
 
