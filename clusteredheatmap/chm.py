@@ -90,19 +90,15 @@ class ClusteredHeatMap:
         cols_permutation = list(range(len(self.data_cols)))
         rows_permutation = list(range(len(self.data_rows)))
 
-        self.distance_matrix_rows: ndarray | None = None
-        self.linkage_matrix_rows: ndarray | None = None
+        self.distance_matrix_rows: ndarray | None = precomputed_dist_rows
+        self.linkage_matrix_rows: ndarray | None = precomputed_linkage_rows
 
         if self.cluster_rows:
-            self.distance_matrix_rows = (
-                precomputed_dist_rows
-                or scipy.spatial.distance.pdist(
-                    self.data_rows, metric=self.distance_method
-                )
-            )
-            self.linkage_matrix_rows = precomputed_linkage_rows or self.linkage_method(
-                self.distance_matrix_rows
-            )
+            if self.distance_matrix_rows is None:
+                self.distance_matrix_rows = scipy.spatial.distance.pdist(self.data_rows, metric=self.distance_method)
+
+            if self.linkage_matrix_rows is None:
+                self.linkage_matrix_rows = self.linkage_method(self.distance_matrix_rows)
 
             self.linkage_matrix_rows = scipy.cluster.hierarchy.optimal_leaf_ordering(
                 self.linkage_matrix_rows, self.distance_matrix_rows
@@ -112,18 +108,14 @@ class ClusteredHeatMap:
                 self.linkage_matrix_rows
             )
 
-        self.distance_matrix_cols: ndarray | None = None
-        self.linkage_matrix_cols: ndarray | None = None
+        self.distance_matrix_cols: ndarray | None = precomputed_dist_cols
+        self.linkage_matrix_cols: ndarray | None = precomputed_linkage_cols
         if self.cluster_columns:
-            self.distance_matrix_cols = (
-                precomputed_dist_cols
-                or scipy.spatial.distance.pdist(
-                    self.data_cols, metric=self.distance_method
-                )
-            )
-            self.linkage_matrix_cols = precomputed_linkage_cols or self.linkage_method(
-                self.distance_matrix_cols
-            )
+            if self.distance_matrix_cols is None:
+                self.distance_matrix_cols = scipy.spatial.distance.pdist(self.data_cols, metric=self.distance_method)
+
+            if self.linkage_matrix_cols is None:
+                self.linkage_matrix_cols = self.linkage_method(self.distance_matrix_cols)
 
             self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
                 self.linkage_matrix_cols, self.distance_matrix_cols

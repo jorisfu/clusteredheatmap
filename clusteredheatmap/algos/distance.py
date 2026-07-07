@@ -15,8 +15,7 @@ def euclidean(a: Vector, b: Vector) -> np.float64:
 
 def euclidean_pds(a: Vector, b: Vector) -> np.float64:
     """
-    Partial Distance Strategy as proposed by Dixon. See 
-    
+    Partial Distance Strategy as proposed by Dixon. See "Pattern Recognition with Partly Missing Data" by John K. Dixon.
     """
     nan_mask = np.isnan(a) | np.isnan(b)
     weight = len(nan_mask) / (len(nan_mask) - sum(nan_mask))
