@@ -9,6 +9,9 @@ Vector = npt.ArrayLike
 """ Distance function measuring distance between two data points """
 DistFun = Callable[[Vector, Vector], np.float64]
 
+""" Distance function operating on a matrix and returning a matrix, compatible with scipy pdist """
+PDistFun = Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
+
 """ Function generating a linkage matrix from a distance matrix, compatible with scipy.cluster.hierarchy.linkage """
 LinkageFun = Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
 

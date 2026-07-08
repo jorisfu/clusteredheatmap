@@ -10,6 +10,7 @@ from clusteredheatmap.types import (
     DistFun,
     HeatmapMatrix,
     LinkageFun,
+    PDistFun,
 )
 import clusteredheatmap.algos.distance as dist
 import clusteredheatmap.algos.linkage as link
@@ -35,6 +36,7 @@ class ClusteredHeatMap:
         precomputed_linkage_rows: ndarray | None = None,
         precomputed_dist_cols: ndarray | None = None,
         precomputed_linkage_cols: ndarray | None = None,
+        optimal_leaf_ordering: bool = True,
     ) -> None:
         """
         Computes the necessary data for a clustered heatmap.
@@ -69,6 +71,8 @@ class ClusteredHeatMap:
         :param precomputed_linkage_columns: Linkage matrix for clustering between columns in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
+        :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for 
+            the dendrograms.
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
@@ -81,10 +85,7 @@ class ClusteredHeatMap:
         self.cluster_rows: bool = cluster_rows
         self.cluster_columns: bool = cluster_columns
 
-        """ Linkage + Distance method that performs the clustering """
-        self.distance_method: DistFun | DistFunName = dist.get_preferred_implementation(
-            distance
-        )
+        self.pdist_method: PDistFun = dist.get_preferred_pdist_implementation(distance)
         self.linkage_method: LinkageFun = link.get_preferred_implementation(linkage)
 
         cols_permutation = list(range(len(self.data_cols)))
@@ -95,14 +96,15 @@ class ClusteredHeatMap:
 
         if self.cluster_rows:
             if self.distance_matrix_rows is None:
-                self.distance_matrix_rows = scipy.spatial.distance.pdist(self.data_rows, metric=self.distance_method)
+                self.distance_matrix_rows = self.pdist_method(self.data_rows)
 
             if self.linkage_matrix_rows is None:
                 self.linkage_matrix_rows = self.linkage_method(self.distance_matrix_rows)
 
-            self.linkage_matrix_rows = scipy.cluster.hierarchy.optimal_leaf_ordering(
-                self.linkage_matrix_rows, self.distance_matrix_rows
-            )
+            if optimal_leaf_ordering:
+                self.linkage_matrix_rows = scipy.cluster.hierarchy.optimal_leaf_ordering(
+                    self.linkage_matrix_rows, self.distance_matrix_rows
+                )
 
             rows_permutation = scipy.cluster.hierarchy.leaves_list(
                 self.linkage_matrix_rows
@@ -112,14 +114,15 @@ class ClusteredHeatMap:
         self.linkage_matrix_cols: ndarray | None = precomputed_linkage_cols
         if self.cluster_columns:
             if self.distance_matrix_cols is None:
-                self.distance_matrix_cols = scipy.spatial.distance.pdist(self.data_cols, metric=self.distance_method)
+                self.distance_matrix_cols = self.pdist_method(self.data_cols)
 
             if self.linkage_matrix_cols is None:
                 self.linkage_matrix_cols = self.linkage_method(self.distance_matrix_cols)
 
-            self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
-                self.linkage_matrix_cols, self.distance_matrix_cols
-            )
+            if optimal_leaf_ordering:
+                self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
+                    self.linkage_matrix_cols, self.distance_matrix_cols
+                )
 
             cols_permutation = scipy.cluster.hierarchy.leaves_list(
                 self.linkage_matrix_cols
@@ -128,10 +131,10 @@ class ClusteredHeatMap:
         permuted_data = self.data_rows[rows_permutation]
         self.permuted_data: HeatmapMatrix = permuted_data[:, cols_permutation]
         self.permuted_column_labels: list[str] = [
-            self.data.columns[int(i)] for i in cols_permutation
+            str(self.data.columns[int(i)]) for i in cols_permutation
         ]
         self.permuted_row_labels: list[str] = [
-            self.data.index[int(i)] for i in rows_permutation
+            str(self.data.index[int(i)]) for i in rows_permutation
         ]
 
         self.column_group_mappings: dict[str, dict[str, str]] = (

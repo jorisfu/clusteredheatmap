@@ -1,9 +1,10 @@
 import numpy as np
+import numpy.typing as npt
 from typing import Literal
 
 import scipy
 
-from clusteredheatmap.types import DistFun, Vector
+from clusteredheatmap.types import DistFun, Vector, PDistFun
 
 DistFunName = Literal["euclidean", "manhattan", "nan_euclidean"]
 SCIPY_SUPPORTED_DISTANCES = [""]
@@ -36,6 +37,15 @@ def mesquita_expected_euclidean(a: Vector, b: Vector) -> np.float64:
     # TODO
     return np.float64(0.0)
 
+
+def eirola_esd(a: Vector, b: Vector) -> npt.NDArray[np.float64]:
+    """
+    Expected Squared Distance as proposed by Eirola et al. See [TODO]
+    """
+
+    # TODO: This returns a MATRIX!
+    return np.array()
+
 def manhattan(a: Vector, b: Vector) -> np.float64:
     return np.float64(np.subtract(a, b).sum())
 
@@ -46,21 +56,31 @@ _mapping: dict[DistFunName, DistFun] = {
     "nan_euclidean": euclidean_pds,
 }
 
+_pdist_mapping: dict[DistFunName, PDistFun] = {
+    "eirola_esd": eirola_esd,
+}
 
-def get_preferred_implementation(
+
+def get_preferred_pdist_implementation(
     distance: DistFunName | DistFun,
-) -> DistFunName | DistFun:
+) -> PDistFun:
     """
-    From a given name of a distance function to use, returns
-    either the name of the function if supported by scipy or the
-    implementation of the method if not
+    From a given name of a distance function to use or a distance function, returns
+    a callable function compatible with pdist to create 
+    a condensed distance matrix from an array of observation
+    vectors.
     """
 
-    if isinstance(distance, str):
-        if distance in SCIPY_SUPPORTED_DISTANCES:
-            return distance
-        else:
-            return _mapping[distance]
+    if callable(distance):
+        return lambda mat: scipy.spatial.distance.pdist(mat, distance)
 
-    elif callable(distance):
-        return distance
+    if distance in SCIPY_SUPPORTED_DISTANCES:
+        return lambda mat: scipy.spatial.distance.pdist(mat, distance)
+    elif distance in _mapping.keys():
+        dist_implementation = _mapping[distance]
+        return lambda mat: scipy.spatial.distance.pdist(mat, dist_implementation)
+    elif distance in _pdist_mapping.keys():
+        return _pdist_mapping[distance]
+
+    raise ValueError(f"Distance function {distance} not supported")
+
