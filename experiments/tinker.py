@@ -40,7 +40,7 @@ significant_proteins = significant_proteins.pivot(
 
 c = ClusteredHeatMap(
     significant_proteins,
-    distance="nan_euclidean",
+    distance="dixon_pds_euclidean",
     linkage="complete",
     column_group_mappings={
         "Group": {"P10": "CTL", "P11": "CTL", "P3": "AD"},
