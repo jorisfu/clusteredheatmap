@@ -27,9 +27,7 @@ Color = str
 """ Plotly-compatible colorscale definition """
 Colorscale = list[list[float | Color]]
 
-""" Point in 2D space, used for layouting """
-
-
 class LayoutPoint(NamedTuple):
+    """ Point in 2D space, used for layouting """
     row: int
     col: int

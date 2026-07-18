@@ -75,7 +75,7 @@ b.add_row_group_markers(
     }
 )
 b.add_col_ticks(anchor_subplot="h", side="bottom")
-# b.add_row_ticks(anchor_subplot="g", side="left")
+b.add_row_ticks(anchor_subplot="g", side="left")
 b.get_figure().show()
 
 # fig = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh").autobuild()
