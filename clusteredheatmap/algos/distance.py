@@ -5,6 +5,7 @@ from typing import Literal
 
 import scipy
 
+from clusteredheatmap.algos.misc import ecmnmle
 from clusteredheatmap.types import DistFun, Vector, PDistFun
 
 ScipySupportedDist = Literal['braycurtis', 'canberra', 'chebyshev', 'cityblock', 'correlation', 'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'jensenshannon', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalsneath', 'sqeuclidean', 'yule']
@@ -37,13 +38,59 @@ def mesquita_eed(a: Vector, b: Vector) -> np.float64:
     return np.float64(0.0)
 
 
-def eirola_esd(a: Vector, b: Vector) -> npt.NDArray[np.float64]:
+def eirola_esd(data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """
-    Expected Squared Distance as proposed by Eirola et al. See [TODO]
+    Expected Squared Distance as proposed by Eirola et al. See [TODO].
+    Algorithm implemented as described in section 3.4
     """
 
-    # TODO: This returns a MATRIX!
-    return np.array()
+    n_observations, n_features = data.shape
+
+    mean, cov = ecmnmle(data, max_iterations=70)
+    s_squared = np.full((n_observations), 0.0)
+    imputed_data = data.copy()
+
+    for i in range(n_observations):
+        x_i = data[i].copy()
+        missing = np.isnan(x_i)
+        observed = ~missing
+
+        if not np.any(missing):
+            continue
+
+        # Following calculation is basically the same as in the E step of the ecmnmle algorithm.
+        # Using the conditional means and variances as also outlined in the ESD paper
+        # (section 3.2).
+        # Not employing any additional safeguards here as the converged result
+        # _should_ work fine.
+        x_i_o = x_i[observed]
+        mu_o = mean[observed]
+        mu_m = mean[missing]
+
+        cov_oo = cov[np.ix_(observed, observed)]
+        cov_mo = cov[np.ix_(missing, observed)]
+        cov_om = cov[np.ix_(observed, missing)]
+        cov_mm = cov[np.ix_(missing, missing)]
+
+        inv_cov_oo = np.linalg.pinv(cov_oo, hermitian=True)
+        beta = cov_mo @ inv_cov_oo
+        
+        conditional_mean = mu_m + beta @ (x_i_o - mu_o)
+        conditional_cov = cov_mm - beta @ cov_om
+
+        diag_sum = np.linalg.trace(conditional_cov)
+        s_squared[i] = diag_sum
+        
+        x_i[missing] = conditional_mean
+        imputed_data[i] = x_i
+
+    pdist = scipy.spatial.distance.pdist(imputed_data, "sqeuclidean")
+
+    for i in range(n_observations):
+        for j in range(i+1, n_observations):
+            pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] += (s_squared[i] + s_squared[j])
+
+    return pdist
 
 _mapping: dict[DistFunName, DistFun] = {
     "dixon_pds_euclidean": dixon_pds_euclidean,

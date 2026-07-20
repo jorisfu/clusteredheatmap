@@ -163,6 +163,7 @@ def ecmnmle(
 
         # print(estimated_mean)
         # print(_iter, current_ll, estimated_mean)
+        print(_iter, current_ll)
 
         if has_converged:
             break
