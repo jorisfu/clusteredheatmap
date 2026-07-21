@@ -425,7 +425,7 @@ class PlotlyVisuBuilder:
         relative_width: int = 80,
         relative_height: int = 80,
         nan_color: Color = "#616161",
-        colorscale: str | Colorscale | None = None,
+        colorscale: str | Colorscale = DEFAULT_HEATMAP_COLORSCALE,
         _zmin: float | str | None = None,
         _zmax: float | str | None = None,
         _zmid: float | str | None = None,
@@ -523,9 +523,6 @@ class PlotlyVisuBuilder:
             raise ValueError(
                 f"Heatmap zmin ({str(zmin)}), zmid ({str(zmid)}) and zmax ({str(zmax)}) must be in increasing order."
             )
-
-        if colorscale is None:
-            colorscale = DEFAULT_HEATMAP_COLORSCALE
 
         colorscale = self._build_asymmetric_colorscale(colorscale, zmin, zmax, zmid)
 
