@@ -560,6 +560,7 @@ class PlotlyVisuBuilder:
             colorscale=colorscale,
             customdata=custom_data,
             hovertemplate=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: %{{z}} <extra></extra>",
+            hovertemplatefallback=f"{self.chm.data_column_title}: %{{customdata[0]}}<br>{self.chm.data_row_title}: %{{customdata[1]}}<br>{self.chm.data_z_title}: NaN <extra></extra>",
             zmin=zmin,
             zmax=zmax,
         )
