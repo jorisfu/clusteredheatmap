@@ -10,11 +10,11 @@ from clusteredheatmap.types import DistFun, Vector, PDistFun
 
 ScipySupportedDist = Literal['braycurtis', 'canberra', 'chebyshev', 'cityblock', 'correlation', 'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'jensenshannon', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalsneath', 'sqeuclidean', 'yule']
 
-ChmSupportedDist = Literal["dixon_pds_euclidean", "mesquita_eed", "eirola_esd"]
+ChmSupportedDist = Literal["dixon_pds_euclidean", "dixon_pds_sqeuclidean", "mesquita_eed", "eirola_esd"]
 
 DistFunName = ScipySupportedDist | ChmSupportedDist
 
-def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
+def _dixon_pds_euclidean(a: Vector, b: Vector, sqrt: bool = True) -> np.float64:
     """
     Partial Distance Strategy as proposed by Dixon. See "Pattern Recognition with Partly Missing Data" by John K. Dixon.
     """
@@ -25,7 +25,18 @@ def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
     masked_b = b[~nan_mask]
 
     d = scipy.spatial.distance.sqeuclidean(masked_a, masked_b)
-    return np.float64(np.sqrt(weight * d))
+    res = weight * d
+
+    if sqrt:
+        res = np.sqrt(res)
+
+    return np.float64(res)
+
+def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
+    return _dixon_pds_euclidean(a, b, sqrt=True)
+
+def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
+    return _dixon_pds_euclidean(a, b, sqrt=False)
 
 def mesquita_eed(a: Vector, b: Vector) -> np.float64:
     """
@@ -94,6 +105,7 @@ def eirola_esd(data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
 
 _mapping: dict[DistFunName, DistFun] = {
     "dixon_pds_euclidean": dixon_pds_euclidean,
+    "dixon_pds_sqeuclidean": dixon_pds_sqeuclidean,
 }
 
 _pdist_mapping: dict[DistFunName, PDistFun] = {
