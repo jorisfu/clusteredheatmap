@@ -169,7 +169,7 @@ def stringify_labels_with_group_mappings(
         for group_name, mapping in mappings.items():
             group = mapping.get(label)
             if group is not None:
-                groups += group_name + " " + group + ", "
+                groups += group_name + ": " + group + ", "
         if len(groups) > 0:
             groups = groups[:-2]
             groups = " (" + groups + ")"

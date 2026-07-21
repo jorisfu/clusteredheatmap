@@ -429,6 +429,8 @@ class PlotlyVisuBuilder:
         _zmin: float | str | None = None,
         _zmax: float | str | None = None,
         _zmid: float | str | None = None,
+        ticktext_prefix: tuple[str, str, str] = ("", "", ""),
+        tickfloatformat: str = "{:5.3f}"
     ) -> None:
         """
         Adds the heatmap to the visualization.
@@ -450,6 +452,10 @@ class PlotlyVisuBuilder:
                 "median": midpoint is the median of all data points
         :param _zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
             Cells with z-values higher than this will use the highest color.
+        :param _ticktext_prefix: For the zmin, zmid and zmax ticks on the colorbar legend,
+            strings to prefix to the numerical values (e.g. ("min: ", "median: ", "max: "))
+        :param _tickfloatformat: How to format the numerical strings for the
+            colorbar legend ticks
         """
 
         def generate_background_map(
@@ -529,8 +535,6 @@ class PlotlyVisuBuilder:
             self.helpers.add_trace(background_map, target_position)
 
         ## Custom data for tooltip
-        # TODO: Generalise this and cast all groupings
-        # So we can get group info in tooltip?
         col_label_matrix = np.broadcast_to(
             self.chm.permuted_col_fulldescriptions, self.chm.permuted_data.shape
         )
@@ -542,12 +546,19 @@ class PlotlyVisuBuilder:
         # custom_data[:, :, 0] will be columns, custom_data[:, :, 1] will be rows
         custom_data = np.dstack((col_label_matrix, row_label_matrix))
 
+        ticktext = (
+            ticktext_prefix[0] + tickfloatformat.format(zmin),
+            ticktext_prefix[1] + tickfloatformat.format(zmid),
+            ticktext_prefix[2] + tickfloatformat.format(zmax),
+        )
+
         heatmap = go.Heatmap(
             z=self.chm.permuted_data,
             colorbar=self._new_colorbar(
                 title=self.chm.data_z_title,
                 tickmode="array",
                 tickvals=(zmin, zmid, zmax),
+                ticktext=ticktext
             ),
             colorscale=colorscale,
             customdata=custom_data,

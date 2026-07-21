@@ -40,7 +40,7 @@ significant_proteins = significant_proteins.pivot(
 
 c = ClusteredHeatMap(
     significant_proteins,
-    distance="eirola_esd",
+    distance="dixon_pds_euclidean",
     linkage="complete",
     column_group_mappings={
         "Group": {"P10": "CTL", "P11": "CTL", "P3": "AD"},
@@ -65,7 +65,7 @@ c = ClusteredHeatMap(
 )
 
 b = PlotlyVisuBuilder(c, vertical_layout="dgh", horizontal_layout="dgh")
-b.add_heatmap(_zmin=-2.5, _zmid="median", _zmax=3.5)
+b.add_heatmap(_zmin=-2.5, _zmid="median", _zmax=3.5, _ticktext_prefix=("start: ", "mid: ", "end: "))
 b.add_col_dendrogram()
 b.add_row_dendrogram()
 b.add_col_group_markers(_color_overrides={"Age": {"<65": "#FCE300", ">65": "#ABD310"}})
