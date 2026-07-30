@@ -5,6 +5,83 @@ from typing import Literal
 
 from clusteredheatmap.types import Vector
 
+def ecmgmm(
+    data: npt.NDArray[np.float64],
+    k: int,
+    *,
+    max_iterations: int = 400,
+    tolerance: float = 1e-8,
+):
+
+    """
+    Estimates weight, mean and covariance of k gaussian distributions fitted to the data
+    using the Expectation Conditional Maximizaton algorithm.
+
+    The algorithm is described in 10.1016/j.neucom.2013.07.050 (ref. [1]).
+    The general structure of this implementation was influenced by the ecmnmle algorithm below,
+    which is based on different sources referenced there.
+
+    :param data: the data as a numpy matrix of shape (n_observations, n_features)
+    :param k: How many Gaussians to use for the GMM
+    :param max_iterations: No of iterations after which the algorithm forcely terminates (w/out convergence)
+    :param tolerance: Max delta after which an increase in loglikelihood is considered a convergence
+
+    :return: List l of length k of Tuples (pi, mu, Sigma), where for 0 <= i < k:
+        l[i].pi is the mixing coefficient for the i-th Gaussian 
+        l[i].mu are the means of the i-th Gaussian
+        l[i].Sigma is the covariance matrix of the i-th Gaussian
+    """
+
+    invalid_observations = np.all(np.isnan(data), axis=1)
+    if np.any(invalid_observations):
+        raise ValueError("Illegal input: data contains at least one observation with only NaNs.")
+
+    n_samples, n_features = data.shape
+
+    # Masks for entire dataset
+    missing = np.isnan(data)
+    observed = ~missing
+
+    def loglikelihood():
+        return -np.inf
+
+    ##
+    ## Initialization
+    ##
+
+    # For each feature, we now have k Gaussian distributions, each with their own mean and covar.
+    # Means are initialized by selecting random values from the observed data (as in section 2.4 in [1]).
+    # As in [1], observed values are preferred over imputed values, but imputed values are used
+    # if not enough values are present.
+    rng = np.random.default_rng()
+    estimated_feature_means = np.nanmean(data, axis=0) # only single value for each feature
+    imputed_features = np.where(missing, estimated_feature_means, data).transpose()
+
+    estimated_mean = np.full((n_features, k), 0.0)
+    obs_t = observed.transpose()
+
+    for i in range(n_features):
+        weight = obs_t[i] / np.sum(obs_t[i])
+        estimated_mean[i] = rng.choice(imputed_features[i], size=2, axis=0, p=weight)
+
+    estimated_mean = estimated_mean.transpose() # Shape (k, n_features)
+
+    # For simplicity, we're using the imputed data for an initial covariance estimation.
+    estimated_covar = np.full((k, n_features, n_features), 0.0)
+
+    for i in range(k):
+        estimated_covar[i] = np.atleast_2d(np.cov(imputed_features, rowvar=True, bias=True))
+
+    estimated_mix_coef = np.full((k), 1.0/k)
+
+    print(estimated_mean)
+    print(estimated_covar)
+    print(estimated_mix_coef)
+
+    has_converged: bool = False
+    prev_ll = -np.inf
+    # for _iter in range(max_iterations):
+
 def ecmnmle(
     data: npt.NDArray[np.float64], 
     *,
@@ -163,7 +240,7 @@ def ecmnmle(
 
         # print(estimated_mean)
         # print(_iter, current_ll, estimated_mean)
-        print(_iter, current_ll)
+        # print(_iter, current_ll)
 
         if has_converged:
             break
