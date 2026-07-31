@@ -5,6 +5,7 @@ from typing import Literal
 
 from clusteredheatmap.types import Vector
 
+
 def ecmgmm(
     data: npt.NDArray[np.float64],
     k: int,
@@ -12,7 +13,6 @@ def ecmgmm(
     max_iterations: int = 400,
     tolerance: float = 1e-8,
 ):
-
     """
     Estimates weight, mean and covariance of k gaussian distributions fitted to the data
     using the Expectation Conditional Maximizaton algorithm.
@@ -27,14 +27,16 @@ def ecmgmm(
     :param tolerance: Max delta after which an increase in loglikelihood is considered a convergence
 
     :return: List l of length k of Tuples (pi, mu, Sigma), where for 0 <= i < k:
-        l[i].pi is the mixing coefficient for the i-th Gaussian 
+        l[i].pi is the mixing coefficient for the i-th Gaussian
         l[i].mu are the means of the i-th Gaussian
         l[i].Sigma is the covariance matrix of the i-th Gaussian
     """
 
     invalid_observations = np.all(np.isnan(data), axis=1)
     if np.any(invalid_observations):
-        raise ValueError("Illegal input: data contains at least one observation with only NaNs.")
+        raise ValueError(
+            "Illegal input: data contains at least one observation with only NaNs."
+        )
 
     n_samples, n_features = data.shape
 
@@ -54,7 +56,9 @@ def ecmgmm(
     # As in [1], observed values are preferred over imputed values, but imputed values are used
     # if not enough values are present.
     rng = np.random.default_rng()
-    estimated_feature_means = np.nanmean(data, axis=0) # only single value for each feature
+    estimated_feature_means = np.nanmean(
+        data, axis=0
+    )  # only single value for each feature
     imputed_features = np.where(missing, estimated_feature_means, data).transpose()
 
     estimated_mean = np.full((n_features, k), 0.0)
@@ -64,15 +68,17 @@ def ecmgmm(
         weight = obs_t[i] / np.sum(obs_t[i])
         estimated_mean[i] = rng.choice(imputed_features[i], size=2, axis=0, p=weight)
 
-    estimated_mean = estimated_mean.transpose() # Shape (k, n_features)
+    estimated_mean = estimated_mean.transpose()  # Shape (k, n_features)
 
     # For simplicity, we're using the imputed data for an initial covariance estimation.
     estimated_covar = np.full((k, n_features, n_features), 0.0)
 
     for i in range(k):
-        estimated_covar[i] = np.atleast_2d(np.cov(imputed_features, rowvar=True, bias=True))
+        estimated_covar[i] = np.atleast_2d(
+            np.cov(imputed_features, rowvar=True, bias=True)
+        )
 
-    estimated_mix_coef = np.full((k), 1.0/k)
+    estimated_mix_coef = np.full((k), 1.0 / k)
 
     print(estimated_mean)
     print(estimated_covar)
@@ -82,8 +88,9 @@ def ecmgmm(
     prev_ll = -np.inf
     # for _iter in range(max_iterations):
 
+
 def ecmnmle(
-    data: npt.NDArray[np.float64], 
+    data: npt.NDArray[np.float64],
     *,
     max_iterations: int = 400,
     tolerance: float = 1e-8,
@@ -104,12 +111,14 @@ def ecmnmle(
     """
     invalid_observations = np.all(np.isnan(data), axis=1)
     if np.any(invalid_observations):
-        raise ValueError("Illegal input: data contains at least one observation with only NaNs.")
+        raise ValueError(
+            "Illegal input: data contains at least one observation with only NaNs."
+        )
 
     n_observations, n_features = data.shape
 
     def loglikelihood(
-        data: npt.NDArray[np.float64], 
+        data: npt.NDArray[np.float64],
         estimated_mean: npt.NDArray[np.float64],
         estimated_covar: npt.NDArray[np.float64],
     ):
@@ -130,7 +139,7 @@ def ecmnmle(
             y_o = observation[observed]
             mu_o = estimated_mean[observed]
             cov_oo = estimated_covar[np.ix_(observed, observed)]
-            
+
             sign, logdet = np.linalg.slogdet(cov_oo)
             if sign < 0:
                 raise Exception("Matrix is non-positive definite, shouldn't happen")
@@ -142,28 +151,29 @@ def ecmnmle(
                 inv_cov_oo = np.linalg.pinv(cov_oo, hermitian=True)
             except np.linalg.LinAlgError:
                 inv_cov_oo = np.eye(np.sum(observed))
-                
+
             diff = y_o - mu_o
 
             ll += -0.5 * diff.T @ inv_cov_oo @ diff
 
         return ll
 
-
     # Initialization like the `twostage` method MATLAB provides.
     # Estimate a mean vector by ignoring the NaNs and "impute" the data by filling with the mean.
     # Resulting mean and covar matrix are the starting point.
     estimated_mean: Vector = np.nanmean(data, axis=0)
     imputed_data = np.where(np.isnan(data), estimated_mean, data)
-    estimated_covar = np.atleast_2d(np.cov(imputed_data, rowvar=False, bias=True)) # bias as per MATLAB docs
+    estimated_covar = np.atleast_2d(
+        np.cov(imputed_data, rowvar=False, bias=True)
+    )  # bias as per MATLAB docs
 
     has_converged: bool = False
     prev_ll = -np.inf
     for _iter in range(max_iterations):
-        
+
         ##
         ## Expectation
-        ## 
+        ##
         ## See section 11.2.1 in [2]
 
         # See [2] equations 11.2 and 11.3
@@ -197,11 +207,11 @@ def ecmnmle(
                 try:
                     inv_cov_oo = np.linalg.pinv(cov_oo, hermitian=True)
                     beta = cov_mo @ inv_cov_oo
-                
+
                 # Happens sometimes
                 except np.linalg.LinAlgError:
                     # Same shape as regular beta but just zero
-                    # So we don't consider any covar in the calculations for 
+                    # So we don't consider any covar in the calculations for
                     # this iter.
                     beta = np.zeros((np.sum(missing), np.sum(observed)))
 
@@ -214,7 +224,6 @@ def ecmnmle(
             sum_y += y
             sum_yy += np.outer(y, y) + cov_i
 
-
         # NOTE: Both [1] and [2] describe the use of a design matrix for
         # the maximization steps. As there is no "known design matrix"
         # that we can pass to matlab (and the ESD algorithm that we do this for
@@ -223,7 +232,9 @@ def ecmnmle(
         # hence some formulas look different here than they do in the references.
         # TODO: Write down proofs for this or nah?
         new_estimated_mean = sum_y / n_observations
-        new_estimated_covar = sum_yy / n_observations - np.outer(new_estimated_mean, new_estimated_mean)
+        new_estimated_covar = sum_yy / n_observations - np.outer(
+            new_estimated_mean, new_estimated_mean
+        )
 
         # Re-force symmetry and add jitter, else we don't converge...
         new_estimated_covar = (new_estimated_covar + new_estimated_covar.T) / 2.0
@@ -233,7 +244,7 @@ def ecmnmle(
 
         if abs(current_ll - prev_ll) <= tolerance:
             has_converged = True
-        
+
         estimated_mean = new_estimated_mean
         estimated_covar = new_estimated_covar
         prev_ll = current_ll

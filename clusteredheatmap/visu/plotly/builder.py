@@ -430,7 +430,7 @@ class PlotlyVisuBuilder:
         _zmax: float | str | None = None,
         _zmid: float | str | None = None,
         ticktext_prefix: tuple[str, str, str] = ("", "", ""),
-        tickfloatformat: str = "{:5.3f}"
+        tickfloatformat: str = "{:5.3f}",
     ) -> None:
         """
         Adds the heatmap to the visualization.
@@ -555,7 +555,7 @@ class PlotlyVisuBuilder:
                 title=self.chm.data_z_title,
                 tickmode="array",
                 tickvals=(zmin, zmid, zmax),
-                ticktext=ticktext
+                ticktext=ticktext,
             ),
             colorscale=colorscale,
             customdata=custom_data,

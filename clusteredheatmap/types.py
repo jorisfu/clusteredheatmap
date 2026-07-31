@@ -7,10 +7,10 @@ import numpy.typing as npt
 Vector = npt.ArrayLike
 
 """ Distance function measuring distance between two data points """
-DistFun = Callable[[Vector, Vector], np.float64]
+DistFun = Callable[..., np.float64]  # Ellipsis to allow for kwargs
 
 """ Distance function operating on a matrix and returning a matrix, compatible with scipy pdist """
-PDistFun = Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
+PDistFun = Callable[..., npt.NDArray[np.float64]]  # Ellipsis to allow for kwargs
 
 """ Function generating a linkage matrix from a distance matrix, compatible with scipy.cluster.hierarchy.linkage """
 LinkageFun = Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]]
@@ -27,7 +27,9 @@ Color = str
 """ Plotly-compatible colorscale definition """
 Colorscale = list[list[float | Color]]
 
+
 class LayoutPoint(NamedTuple):
-    """ Point in 2D space, used for layouting """
+    """Point in 2D space, used for layouting"""
+
     row: int
     col: int

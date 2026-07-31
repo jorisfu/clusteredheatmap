@@ -1,5 +1,4 @@
 # pyright: reportExplicitAny=false
-
 from typing import Any
 
 from numpy import ndarray
@@ -24,6 +23,7 @@ class ClusteredHeatMap:
         data: pd.DataFrame,
         *,
         distance: DistFunName | DistFun = "euclidean",
+        distance_args: dict[str, Any] | None = None,
         linkage: LinkageFunName | LinkageFun = "single",
         cluster_rows: bool = True,
         cluster_columns: bool = True,
@@ -46,6 +46,9 @@ class ClusteredHeatMap:
         :param data: The data to cluster in pandas wide format
         :param distance: The name of the distance function to use or a custom distance function.
             Custom distance functions must be compatible with [[TODO: Signature]]
+        :param distance_args: Additional arguments passed to the distance function.
+            Only applied if distance function name is given, passed callables
+            must have their additional arguments hardcoded (e.g. with a lambda)
         :param linkage: The name of the linkage function to use or a custom linkage function.
             Custom linkage functions must be compatible with [[TODO: Signature]]
         :param column_group_mappings: Dicts mapping column labels to groups.
@@ -71,8 +74,8 @@ class ClusteredHeatMap:
         :param precomputed_linkage_columns: Linkage matrix for clustering between columns in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
-        :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for 
-            the dendrograms.
+        :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
+            the dendrograms.Seljalandsfoss
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
@@ -85,7 +88,9 @@ class ClusteredHeatMap:
         self.cluster_rows: bool = cluster_rows
         self.cluster_columns: bool = cluster_columns
 
-        self.pdist_method: PDistFun = dist.get_preferred_pdist_implementation(distance)
+        self.pdist_method: PDistFun = dist.get_preferred_pdist_implementation(
+            distance, distance_args
+        )
         self.linkage_method: LinkageFun = link.get_preferred_implementation(linkage)
 
         cols_permutation = list(range(len(self.data_cols)))
@@ -99,11 +104,15 @@ class ClusteredHeatMap:
                 self.distance_matrix_rows = self.pdist_method(self.data_rows)
 
             if self.linkage_matrix_rows is None:
-                self.linkage_matrix_rows = self.linkage_method(self.distance_matrix_rows)
+                self.linkage_matrix_rows = self.linkage_method(
+                    self.distance_matrix_rows
+                )
 
             if optimal_leaf_ordering:
-                self.linkage_matrix_rows = scipy.cluster.hierarchy.optimal_leaf_ordering(
-                    self.linkage_matrix_rows, self.distance_matrix_rows
+                self.linkage_matrix_rows = (
+                    scipy.cluster.hierarchy.optimal_leaf_ordering(
+                        self.linkage_matrix_rows, self.distance_matrix_rows
+                    )
                 )
 
             rows_permutation = scipy.cluster.hierarchy.leaves_list(
@@ -117,11 +126,15 @@ class ClusteredHeatMap:
                 self.distance_matrix_cols = self.pdist_method(self.data_cols)
 
             if self.linkage_matrix_cols is None:
-                self.linkage_matrix_cols = self.linkage_method(self.distance_matrix_cols)
+                self.linkage_matrix_cols = self.linkage_method(
+                    self.distance_matrix_cols
+                )
 
             if optimal_leaf_ordering:
-                self.linkage_matrix_cols = scipy.cluster.hierarchy.optimal_leaf_ordering(
-                    self.linkage_matrix_cols, self.distance_matrix_cols
+                self.linkage_matrix_cols = (
+                    scipy.cluster.hierarchy.optimal_leaf_ordering(
+                        self.linkage_matrix_cols, self.distance_matrix_cols
+                    )
                 )
 
             cols_permutation = scipy.cluster.hierarchy.leaves_list(
