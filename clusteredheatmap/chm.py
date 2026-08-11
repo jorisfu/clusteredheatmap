@@ -80,7 +80,7 @@ class ClusteredHeatMap:
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
         :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
-            the dendrograms.Seljalandsfoss
+            the dendrograms.
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns

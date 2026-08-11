@@ -8,6 +8,7 @@ from typing import Literal
 import numpy_typing_compat
 import scipy
 from scipy.spatial.distance import squareform
+import nandist
 
 from clusteredheatmap.algos.gmm_missing.gmm import GMMMissing
 from clusteredheatmap.algos.misc import ecmnmle
@@ -49,6 +50,14 @@ ChmSupportedDist = Literal[
     "eirola_esd_gmm",
 ]
 
+NandistSupportedDist = Literal[
+    "nandist_chebyshev",
+    "nandist_cityblock",
+    "nandist_cosine",
+    "nandist_euclidean",
+    "nandist_minkowski",
+]
+
 DistFunName = ScipySupportedDist | ChmSupportedDist
 
 
@@ -60,8 +69,7 @@ class DistanceError(Exception):
     pass
 
 
-
-def _dixon_pds_euclidean(a: Vector, b: Vector, sqrt: bool = True) -> np.float64:
+def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
     """
     Partial Distance Strategy as proposed by Dixon.
     See "Pattern Recognition with Partly Missing Data" by John K. Dixon.
@@ -81,18 +89,12 @@ def _dixon_pds_euclidean(a: Vector, b: Vector, sqrt: bool = True) -> np.float64:
     d = scipy.spatial.distance.sqeuclidean(masked_a, masked_b)
     res = weight * d
 
-    if sqrt:
-        res = np.sqrt(res)
-
     return np.float64(res)
 
 
 def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
-    return _dixon_pds_euclidean(a, b, sqrt=True)
+    return np.sqrt(dixon_pds_sqeuclidean(a, b))
 
-
-def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
-    return _dixon_pds_euclidean(a, b, sqrt=False)
 
 def mesquita_eed(
     data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 10, max_iter: int = 200
@@ -420,6 +422,11 @@ def get_preferred_pdist_implementation(
             distfun = _completecase(distfun)
             return lambda mat: scipy.spatial.distance.pdist(mat, distfun, **distance_args)
         return lambda mat: scipy.spatial.distance.pdist(mat, distance, **distance_args)
+
+    # nandist supported distance function by name
+    if distance.startswith("nandist_"):
+        metric = distance[8:]
+        return lambda mat: squareform(nandist.cdist(mat, mat, metric, **distance_args), checks=False)
 
     # CHM supported distance function by name
     if distance in _mapping.keys():

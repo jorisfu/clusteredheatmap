@@ -41,7 +41,7 @@ def no_of_gmm_params(k: int, n_features: int) -> int:
     """
     return int(k * n_features + (k - 1) + (0.5 * k * n_features * (n_features + 1)))
 
-def get_best_gmm(min_k: int, max_k: int, max_iter: int, criterion: InfoCriterion, data: npt.NDArray[np.floating]) -> GMMMissing:
+def get_best_gmm(min_k: int, max_k: int, max_iter: int, criterion: InfoCriterion, data: npt.NDArray[np.floating], random_state: int = 123) -> GMMMissing:
     """
     Fits GMMs with min_k <= k <= max_k components to the data and returns the best GMM
     according to the selected information criterion.
@@ -50,6 +50,7 @@ def get_best_gmm(min_k: int, max_k: int, max_iter: int, criterion: InfoCriterion
     :param max_k: Maximum number of Gaussian components to try for GMM.
     :param max_iter: Maximum allowed iterations for each GMM fitting.
     :param criterion: Which information criterion to use
+    :param random_state: Seed for RNG (required for GMM initialization)
 
     :return: GMMMissing model
     """
@@ -68,7 +69,7 @@ def get_best_gmm(min_k: int, max_k: int, max_iter: int, criterion: InfoCriterion
     criterion_score = np.full((n_models), 0.0)
 
     for k in range(min_k, max_k + 1):
-        model = GMMMissing(k, max_iter=max_iter).fit(data)
+        model = GMMMissing(k, max_iter=max_iter, random_state=random_state).fit(data)
         models.append(model)
 
         ll = model.lower_bound_
