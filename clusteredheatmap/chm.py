@@ -24,6 +24,7 @@ class ClusteredHeatMap:
         *,
         distance: DistFunName | DistFun = "euclidean",
         distance_args: dict[str, Any] | None = None,
+        use_completecase_analysis: bool = False,
         linkage: LinkageFunName | LinkageFun = "single",
         cluster_rows: bool = True,
         cluster_columns: bool = True,
@@ -49,6 +50,10 @@ class ClusteredHeatMap:
         :param distance_args: Additional arguments passed to the distance function.
             Only applied if distance function name is given, passed callables
             must have their additional arguments hardcoded (e.g. with a lambda)
+        :param use_completecase_analysis: Whether or not to use complete case
+            analysis for distance between vectors (only use features with pairwise
+            completeness without any adjustment). Generally NOT RECOMMENDED.
+            Only applies to passed distance functions and scipy provided functions.
         :param linkage: The name of the linkage function to use or a custom linkage function.
             Custom linkage functions must be compatible with [[TODO: Signature]]
         :param column_group_mappings: Dicts mapping column labels to groups.
@@ -89,7 +94,7 @@ class ClusteredHeatMap:
         self.cluster_columns: bool = cluster_columns
 
         self.pdist_method: PDistFun = dist.get_preferred_pdist_implementation(
-            distance, distance_args
+            distance, distance_args, use_completecase_analysis
         )
         self.linkage_method: LinkageFun = link.get_preferred_implementation(linkage)
 
