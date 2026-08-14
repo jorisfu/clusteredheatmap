@@ -125,6 +125,7 @@ def mesquita_eed(
     for i in range(n_observations):
         for j in range(i + 1, n_observations):
 
+
             # padded means and covars (lines 13-20)
             pad_mu = np.full((n_components, n_features), 0.0)
             pad_Sigma = np.full((n_components, n_features, n_features), 0.0)
@@ -134,7 +135,13 @@ def mesquita_eed(
             obs_i = ~mis_i
             mis_j = np.isnan(data[j])
             obs_j = ~mis_j
-            eta_hat = 0.0
+            var_z = 0.0
+            expected_z = 0.0
+
+            ## Added from original: short circuit if everything is known
+            if not np.any(mis_i) and not np.any(mis_j):
+                pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = scipy.spatial.distance.euclidean(data[i], data[j])
+                continue
 
             ## Condition each of the GMM components on the observed values of both Xi and Xj.
             # NOTE that this is technically a small optimization compared to the 
@@ -168,10 +175,15 @@ def mesquita_eed(
                 ## Compute padded conditional mean vectors and conditional covariance matrices 
                 ## of Xi − Xj for each GMM component.
                 # pad_mu_c = np.full((n_features), 0.0)
+                # TODO: This doesn't make a lot of sense,
+                # we need E[x_i_c] - E[x_j_c] in this vector for the other
+                # calculations to make sense.
+                # Then we can get E[z] and V[z] and from that we get
+                # m and Omega for the E[eta]
                 pad_mu[c][obs_i] += data[i][obs_i]
-                pad_mu[c][obs_j] += data[j][obs_j]
+                pad_mu[c][obs_j] -= data[j][obs_j] # NOTE: Changed this to -=
                 pad_mu[c][mis_i] += cond_mu[c][i]
-                pad_mu[c][mis_j] += cond_mu[c][j]
+                pad_mu[c][mis_j] -= cond_mu[c][j] # NOTE: Changed this to -=
 
                 # NOTE: There is likely a typo in the original paper in lines 19,20
                 # since adding pad_Sigma_c again would always result in an empty matrix
@@ -179,7 +191,8 @@ def mesquita_eed(
                 pad_Sigma[c][np.ix_(mis_i, mis_i)] += cond_Sigma[c][i]
                 pad_Sigma[c][np.ix_(mis_j, mis_j)] += cond_Sigma[c][j]
 
-            ## Compute eta_hat
+            ## Compute eta_hat (Note: this is Var[z] aka variance of the ESD)
+            ## We also compute E[z] here
             for d in range(n_features):
                 m = 0.0
                 s = 0.0
@@ -189,9 +202,17 @@ def mesquita_eed(
                     s += used_model.alpha_[c] * (pad_mu[c][d] ** 2 + pad_Sigma[c][d][d])
 
                 v = s - m * m
-                eta_hat += 4 * m * m * v + 2 * v * v
+                var_z += 4 * m**2 * v + 2 * v**2
+                expected_z += m**2 + v
 
-            pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = eta_hat
+            ## Eq. (6)
+            nakagami_m = expected_z**2 / var_z
+            nakagami_Omega = expected_z
+    
+            ## Eq. (5)
+            eed = scipy.special.gamma(nakagami_m + 0.5) * np.sqrt(nakagami_Omega / nakagami_m) / scipy.special.gamma(nakagami_m)
+
+            pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = eed
 
     return pdist
 
@@ -304,61 +325,8 @@ def eirola_esd_gmm(
     return pdist
 
 
-def eirola_esd_mvn(data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-    """
-    Expected Squared Distance as proposed by Eirola et al. See [TODO].
-    Algorithm implemented as described in section 3.4
-    """
-
-    n_observations, n_features = data.shape
-
-    mean, cov = ecmnmle(data, max_iterations=70)
-    s_squared = np.full((n_observations), 0.0)
-    imputed_data = data.copy()
-
-    for i in range(n_observations):
-        x_i = data[i].copy()
-        missing = np.isnan(x_i)
-        observed = ~missing
-
-        if not np.any(missing):
-            continue
-
-        # Following calculation is basically the same as in the E step of the ecmnmle algorithm.
-        # Using the conditional means and variances as also outlined in the ESD paper
-        # (section 3.2).
-        # Not employing any additional safeguards here as the converged result
-        # _should_ work fine.
-        x_i_o = x_i[observed]
-        mu_o = mean[observed]
-        mu_m = mean[missing]
-
-        cov_oo = cov[np.ix_(observed, observed)]
-        cov_mo = cov[np.ix_(missing, observed)]
-        cov_om = cov[np.ix_(observed, missing)]
-        cov_mm = cov[np.ix_(missing, missing)]
-
-        inv_cov_oo = np.linalg.pinv(cov_oo, hermitian=True)
-        beta = cov_mo @ inv_cov_oo
-
-        conditional_mean = mu_m + beta @ (x_i_o - mu_o)
-        conditional_cov = cov_mm - beta @ cov_om
-
-        diag_sum = np.linalg.trace(conditional_cov)
-        s_squared[i] = diag_sum
-
-        x_i[missing] = conditional_mean
-        imputed_data[i] = x_i
-
-    pdist = scipy.spatial.distance.pdist(imputed_data, "sqeuclidean")
-
-    for i in range(n_observations):
-        for j in range(i + 1, n_observations):
-            pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] += (
-                s_squared[i] + s_squared[j]
-            )
-
-    return pdist
+def eirola_esd_mvn(data: npt.NDArray[np.float64], max_iter: int = 400) -> npt.NDArray[np.float64]:
+    return eirola_esd_gmm(data, min_k=1, max_k=1, max_iter=max_iter)
 
 
 _mapping: dict[DistFunName, DistFun] = {
@@ -369,6 +337,7 @@ _mapping: dict[DistFunName, DistFun] = {
 _pdist_mapping: dict[DistFunName, PDistFun] = {
     "eirola_esd_mvn": eirola_esd_mvn,
     "eirola_esd_gmm": eirola_esd_gmm,
+    "mesquita_eed": mesquita_eed,
 }
 
 
