@@ -174,12 +174,6 @@ def mesquita_eed(
 
                 ## Compute padded conditional mean vectors and conditional covariance matrices 
                 ## of Xi − Xj for each GMM component.
-                # pad_mu_c = np.full((n_features), 0.0)
-                # TODO: This doesn't make a lot of sense,
-                # we need E[x_i_c] - E[x_j_c] in this vector for the other
-                # calculations to make sense.
-                # Then we can get E[z] and V[z] and from that we get
-                # m and Omega for the E[eta]
                 pad_mu[c][obs_i] += data[i][obs_i]
                 pad_mu[c][obs_j] -= data[j][obs_j] # NOTE: Changed this to -=
                 pad_mu[c][mis_i] += cond_mu[c][i]
@@ -210,7 +204,10 @@ def mesquita_eed(
             nakagami_Omega = expected_z
     
             ## Eq. (5)
-            eed = scipy.special.gamma(nakagami_m + 0.5) * np.sqrt(nakagami_Omega / nakagami_m) / scipy.special.gamma(nakagami_m)
+            eed = scipy.stats.nakagami.mean(nakagami_m, scale=np.sqrt(nakagami_Omega))
+            if np.isnan(eed):
+                print(nakagami_m, nakagami_Omega)
+                print(scipy.special.gamma(nakagami_m))
 
             pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = eed
 
