@@ -33,10 +33,10 @@ class ClusteredHeatMap:
         data_column_title: str = "Column",
         data_row_title: str = "Row",
         data_z_title: str = "Intensity",
-        precomputed_dist_rows: ndarray | None = None,
-        precomputed_linkage_rows: ndarray | None = None,
-        precomputed_dist_cols: ndarray | None = None,
-        precomputed_linkage_cols: ndarray | None = None,
+        distance_matrix_rows: ndarray | None = None,
+        linkage_matrix_rows: ndarray | None = None,
+        distance_matrix_cols: ndarray | None = None,
+        linkage_matrix_cols: ndarray | None = None,
         optimal_leaf_ordering: bool = True,
     ) -> None:
         """
@@ -67,16 +67,16 @@ class ClusteredHeatMap:
         :param data_column_title: Title for the data columns, i.e. what each column represents
         :param data_row_title: Title for the data rows, i.e. what each row represents
         :param data_z_title: Title for the data values, i.e. what the heat values represent
-        :param precomputed_dist_rows: Condensed distance matrix for distance between rows
+        :param distance_matrix_rows: Condensed distance matrix for distance between rows
             in the data. Overrides calculation if given. Must be in scipy condensed distance
             matrix format (see scipy.spatial.distance.pdist docs)
-        :param precomputed_dist_cols: Condensed distance matrix for distance between columns
+        :param distance_matrix_cols: Condensed distance matrix for distance between columns
             in the data. Overrides calculation if given. Must be in scipy condensed distance
             matrix format (see scipy.spatial.distance.pdist docs)
-        :param precomputed_linkage_rows: Linkage matrix for clustering between rows in the
+        :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
-        :param precomputed_linkage_columns: Linkage matrix for clustering between columns in the
+        :param linkage_matrix_cols: Linkage matrix for clustering between columns in the
             data. Overrides calculation if given. Must be in scipy linkage matrix format
             (see scipy.cluster.hierarchy.linkage docs)
         :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
@@ -101,8 +101,8 @@ class ClusteredHeatMap:
         cols_permutation = list(range(len(self.data_cols)))
         rows_permutation = list(range(len(self.data_rows)))
 
-        self.distance_matrix_rows: ndarray | None = precomputed_dist_rows
-        self.linkage_matrix_rows: ndarray | None = precomputed_linkage_rows
+        self.distance_matrix_rows: ndarray | None = distance_matrix_rows
+        self.linkage_matrix_rows: ndarray | None = linkage_matrix_rows
 
         if self.cluster_rows:
             if self.distance_matrix_rows is None:
@@ -124,8 +124,8 @@ class ClusteredHeatMap:
                 self.linkage_matrix_rows
             )
 
-        self.distance_matrix_cols: ndarray | None = precomputed_dist_cols
-        self.linkage_matrix_cols: ndarray | None = precomputed_linkage_cols
+        self.distance_matrix_cols: ndarray | None = distance_matrix_cols
+        self.linkage_matrix_cols: ndarray | None = linkage_matrix_cols
         if self.cluster_columns:
             if self.distance_matrix_cols is None:
                 self.distance_matrix_cols = self.pdist_method(self.data_cols)
