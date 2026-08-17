@@ -97,17 +97,26 @@ def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
 
 
 def mesquita_eed(
-    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 10, max_iter: int = 200
+    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 10, max_iter: int = 200, gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Expected Euclidean Distance as proposed by Mesquita et al. See http://dx.doi.org/10.1016/j.neucom.2016.12.081.
     Implemented as described in Algorithm 1.
 
     Assumes distances are Nakagami-distributed. Data distribution modeled via a Gaussian mixture distribution.
+
+    Additional parameters:
+    :param min_k: Minimum number of Gaussian components to try for GMM.
+    :param max_k: Maximum number of Gaussian components to try for GMM.
+    :param max_iter: Maximum allowed iterations for each GMM fitting.
+    :param gmm: Pre-computed Gausssian Mixture Model to use instead of attempting multiple models
     """
     n_observations, n_features = data.shape
 
-    used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
+    used_model = gmm
+    if used_model is None:
+        used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
+
     n_components = used_model.n_components
     estimated_covars = used_model.covariances_
     estimated_means = used_model.mu_
@@ -215,7 +224,7 @@ def mesquita_eed(
 
 
 def eirola_esd_gmm(
-    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 4, max_iter: int = 200
+    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 4, max_iter: int = 200, gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Expected Squared Distance as proposed by Eirola et al. See http://dx.doi.org/10.1016/j.neucom.2013.07.050
@@ -227,6 +236,7 @@ def eirola_esd_gmm(
     :param min_k: Minimum number of Gaussian components to try for GMM.
     :param max_k: Maximum number of Gaussian components to try for GMM.
     :param max_iter: Maximum allowed iterations for each GMM fitting.
+    :param gmm: Pre-computed Gausssian Mixture Model to use instead of attempting multiple models
     """
     n_observations, n_features = data.shape
 
@@ -236,7 +246,9 @@ def eirola_esd_gmm(
     ## get model with minimal AICC
     ##
 
-    used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
+    used_model = gmm
+    if used_model is None:
+        used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
     
     ##
     ## Step 3: Get conditional means/covars
