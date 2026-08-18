@@ -326,4 +326,3 @@ def test_compare_with_sklearn_gaussian_mixture_40D_addnoise():
     # Compare fitted means and covariances
     np.testing.assert_allclose(missing_means, sk_means, rtol=5e-2, atol=5e-2)
     np.testing.assert_allclose(missing_covs, sk_covs, rtol=1e-1, atol=1e-1)
-

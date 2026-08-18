@@ -12,7 +12,11 @@ import nandist
 
 from clusteredheatmap.algos.gmm_missing.gmm import GMMMissing
 from clusteredheatmap.algos.misc import ecmnmle
-from clusteredheatmap.algos.modelselection import corrected_aic, get_best_gmm, no_of_gmm_params
+from clusteredheatmap.algos.modelselection import (
+    corrected_aic,
+    get_best_gmm,
+    no_of_gmm_params,
+)
 from clusteredheatmap.types import DistFun, Vector, PDistFun
 
 import logging
@@ -97,7 +101,11 @@ def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
 
 
 def mesquita_eed(
-    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 10, max_iter: int = 200, gmm: GMMMissing | None = None,
+    data: npt.NDArray[np.float64],
+    min_k: int = 1,
+    max_k: int = 10,
+    max_iter: int = 200,
+    gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Expected Euclidean Distance as proposed by Mesquita et al. See http://dx.doi.org/10.1016/j.neucom.2016.12.081.
@@ -134,7 +142,6 @@ def mesquita_eed(
     for i in range(n_observations):
         for j in range(i + 1, n_observations):
 
-
             # padded means and covars (lines 13-20)
             pad_mu = np.full((n_components, n_features), 0.0)
             pad_Sigma = np.full((n_components, n_features, n_features), 0.0)
@@ -149,16 +156,18 @@ def mesquita_eed(
 
             ## Added from original: short circuit if everything is known
             if not np.any(mis_i) and not np.any(mis_j):
-                pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = scipy.spatial.distance.euclidean(data[i], data[j])
+                pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] = (
+                    scipy.spatial.distance.euclidean(data[i], data[j])
+                )
                 continue
 
             ## Condition each of the GMM components on the observed values of both Xi and Xj.
-            # NOTE that this is technically a small optimization compared to the 
+            # NOTE that this is technically a small optimization compared to the
             # pseudocode given, but it's quite the trivial one (just memoization)
             for c in range(n_components):
                 mu_c = estimated_means[c]
                 Sigma_c = estimated_covars[c]
-            
+
                 if cond_mu[c][i] is None:
                     Sigma_c_oo_i = Sigma_c[np.ix_(obs_i, obs_i)]
                     Sigma_c_mo_i = Sigma_c[np.ix_(mis_i, obs_i)]
@@ -167,7 +176,9 @@ def mesquita_eed(
 
                     beta_i = Sigma_c_mo_i @ np.linalg.inv(Sigma_c_oo_i)
 
-                    cond_mu[c][i] = mu_c[mis_i] + beta_i @ (data[i][obs_i] - mu_c[obs_i])
+                    cond_mu[c][i] = mu_c[mis_i] + beta_i @ (
+                        data[i][obs_i] - mu_c[obs_i]
+                    )
                     cond_Sigma[c][i] = Sigma_c_mm_i - beta_i @ Sigma_c_om_i
 
                 if cond_mu[c][j] is None:
@@ -178,15 +189,17 @@ def mesquita_eed(
 
                     beta_j = Sigma_c_mo_j @ np.linalg.inv(Sigma_c_oo_j)
 
-                    cond_mu[c][j] = mu_c[mis_j] + beta_j @ (data[j][obs_j] - mu_c[obs_j])
+                    cond_mu[c][j] = mu_c[mis_j] + beta_j @ (
+                        data[j][obs_j] - mu_c[obs_j]
+                    )
                     cond_Sigma[c][j] = Sigma_c_mm_j - beta_j @ Sigma_c_om_j
 
-                ## Compute padded conditional mean vectors and conditional covariance matrices 
+                ## Compute padded conditional mean vectors and conditional covariance matrices
                 ## of Xi − Xj for each GMM component.
                 pad_mu[c][obs_i] += data[i][obs_i]
-                pad_mu[c][obs_j] -= data[j][obs_j] # NOTE: Changed this to -=
+                pad_mu[c][obs_j] -= data[j][obs_j]  # NOTE: Changed this to -=
                 pad_mu[c][mis_i] += cond_mu[c][i]
-                pad_mu[c][mis_j] -= cond_mu[c][j] # NOTE: Changed this to -=
+                pad_mu[c][mis_j] -= cond_mu[c][j]  # NOTE: Changed this to -=
 
                 # NOTE: There is likely a typo in the original paper in lines 19,20
                 # since adding pad_Sigma_c again would always result in an empty matrix
@@ -211,7 +224,7 @@ def mesquita_eed(
             ## Eq. (6)
             nakagami_m = expected_z**2 / var_z
             nakagami_Omega = expected_z
-    
+
             ## Eq. (5)
             eed = scipy.stats.nakagami.mean(nakagami_m, scale=np.sqrt(nakagami_Omega))
             if np.isnan(eed):
@@ -224,7 +237,11 @@ def mesquita_eed(
 
 
 def eirola_esd_gmm(
-    data: npt.NDArray[np.float64], min_k: int = 1, max_k: int = 4, max_iter: int = 200, gmm: GMMMissing | None = None,
+    data: npt.NDArray[np.float64],
+    min_k: int = 1,
+    max_k: int = 4,
+    max_iter: int = 200,
+    gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Expected Squared Distance as proposed by Eirola et al. See http://dx.doi.org/10.1016/j.neucom.2013.07.050
@@ -240,16 +257,15 @@ def eirola_esd_gmm(
     """
     n_observations, n_features = data.shape
 
-
     ##
-    ## Steps 1-2, 3: Fit models and get AICc and LL for each model; 
+    ## Steps 1-2, 3: Fit models and get AICc and LL for each model;
     ## get model with minimal AICC
     ##
 
     used_model = gmm
     if used_model is None:
         used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
-    
+
     ##
     ## Step 3: Get conditional means/covars
     ##
@@ -260,7 +276,7 @@ def eirola_esd_gmm(
     imputed_data = np.full(data.shape, 0.0)
     estimated_covars = used_model.covariances_
     estimated_means = used_model.mu_
-    estimated_resp = used_model.predict_proba() # This is t
+    estimated_resp = used_model.predict_proba()  # This is t
 
     assert estimated_means is not None
     assert estimated_covars is not None
@@ -319,7 +335,9 @@ def eirola_esd_gmm(
     return pdist
 
 
-def eirola_esd_mvn(data: npt.NDArray[np.float64], max_iter: int = 400) -> npt.NDArray[np.float64]:
+def eirola_esd_mvn(
+    data: npt.NDArray[np.float64], max_iter: int = 400
+) -> npt.NDArray[np.float64]:
     return eirola_esd_gmm(data, min_k=1, max_k=1, max_iter=max_iter)
 
 
@@ -351,9 +369,10 @@ def get_preferred_pdist_implementation(
         """
         Returns a distance function that applies the passed function only
         to the subset of both vector's features that are pairwise complete.
-        Generally not recommended as the resulting metric is not adjusted for 
+        Generally not recommended as the resulting metric is not adjusted for
         loss of dimensionality.
         """
+
         def wrapped(a: Vector, b: Vector, **kwargs: Any):
             nan_mask = np.isnan(a) | np.isnan(b)
 
@@ -383,13 +402,17 @@ def get_preferred_pdist_implementation(
         if use_completecase_analysis:
             distfun = getattr(scipy.spatial.distance, distance)
             distfun = _completecase(distfun)
-            return lambda mat: scipy.spatial.distance.pdist(mat, distfun, **distance_args)
+            return lambda mat: scipy.spatial.distance.pdist(
+                mat, distfun, **distance_args
+            )
         return lambda mat: scipy.spatial.distance.pdist(mat, distance, **distance_args)
 
     # nandist supported distance function by name
     if distance.startswith("nandist_"):
         metric = distance[8:]
-        return lambda mat: squareform(nandist.cdist(mat, mat, metric, **distance_args), checks=False)
+        return lambda mat: squareform(
+            nandist.cdist(mat, mat, metric, **distance_args), checks=False
+        )
 
     # CHM supported distance function by name
     if distance in _mapping.keys():

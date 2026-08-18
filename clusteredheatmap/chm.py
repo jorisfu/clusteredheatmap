@@ -46,7 +46,8 @@ class ClusteredHeatMap:
 
         :param data: The data to cluster in pandas wide format
         :param distance: The name of the distance function to use or a custom distance function.
-            Custom distance functions must be compatible with [[TODO: Signature]]
+            Custom distance functions must be compatible with scipy.spatial.distance functions
+            betweeen two vectors
         :param distance_args: Additional arguments passed to the distance function.
             Only applied if distance function name is given, passed callables
             must have their additional arguments hardcoded (e.g. with a lambda)
@@ -55,7 +56,7 @@ class ClusteredHeatMap:
             completeness without any adjustment). Generally NOT RECOMMENDED.
             Only applies to passed distance functions and scipy provided functions.
         :param linkage: The name of the linkage function to use or a custom linkage function.
-            Custom linkage functions must be compatible with [[TODO: Signature]]
+            Custom linkage functions must be compatible with scipy.cluster.hierarchy.linkage
         :param column_group_mappings: Dicts mapping column labels to groups.
             Multiple mappings are supported, each key in this dict gets used as the respecitve
             mapping's label.

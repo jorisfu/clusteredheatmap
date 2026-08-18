@@ -50,6 +50,4 @@ def test_minimalnoise_matches_euclidean(sample_complete_data):
     expected = pdist(X, metric="euclidean")
 
     assert result.shape == expected.shape
-    np.testing.assert_allclose(
-        squareform(result), squareform(expected), rtol=0.2
-    )
+    np.testing.assert_allclose(squareform(result), squareform(expected), rtol=0.2)

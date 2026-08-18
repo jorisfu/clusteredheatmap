@@ -13,6 +13,7 @@ import pytest
 
 from scipy.spatial.distance import pdist, squareform
 
+
 @pytest.fixture
 def sample_complete_data():
     rng = np.random.default_rng(42)
@@ -50,5 +51,7 @@ def test_minimalnoise_matches_sqeuclidean(sample_complete_data):
 
     assert result.shape == expected.shape
     np.testing.assert_allclose(
-        squareform(result), squareform(expected), rtol=0.4,
+        squareform(result),
+        squareform(expected),
+        rtol=0.4,
     )

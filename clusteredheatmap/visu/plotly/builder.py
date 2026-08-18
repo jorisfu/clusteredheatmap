@@ -345,7 +345,7 @@ class PlotlyVisuBuilder:
     ## COLORBARS AND DISTINCT COLOR SEQUENCE GENERATION
     ##
 
-    # TODO: Parametrize
+    # TODO: Replace this
     def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
         return (y for y in PLOTLY_COLORSCALES_QUALITATIVE.Bold)
 
