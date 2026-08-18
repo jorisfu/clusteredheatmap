@@ -260,7 +260,7 @@ def eirola_esd_gmm(
     imputed_data = np.full(data.shape, 0.0)
     estimated_covars = used_model.covariances_
     estimated_means = used_model.mu_
-    estimated_resp = used_model.predict_proba()
+    estimated_resp = used_model.predict_proba() # This is t
 
     assert estimated_means is not None
     assert estimated_covars is not None
@@ -300,8 +300,6 @@ def eirola_esd_gmm(
 
             imp_Sigma_i += t_ik * (imp_Sigma_ik + imp_x_ik @ imp_x_ik.transpose())
 
-        # TODO: Check these two variants
-        # imp_Sigma_i -= used_model.n_components * (imp_x_i @ imp_x_i.transpose())
         imp_Sigma_i -= imp_x_i @ imp_x_i.transpose()
 
         s[i] = np.linalg.trace(imp_Sigma_i)
@@ -310,26 +308,13 @@ def eirola_esd_gmm(
     ## Step 4: Esimate distances
     ##
 
-    # print("Data")
-    # print(data)
-    # print("imputed Data")
-    # print(imputed_data)
-
     pdist = scipy.spatial.distance.pdist(imputed_data, "sqeuclidean")
-    oldpdist = pdist.copy()
 
     for i in range(n_observations):
         for j in range(i + 1, n_observations):
             pdist[n_observations * i + j - ((i + 2) * (i + 1)) // 2] += (
                 s[i] + s[j]
             )  # Apply correction
-
-    # print("Old pdist")
-    # print(pdist)
-    # print("Difference to corrected pdist")
-    # print(pdist - oldpdist)
-    # print("Corrected pdist")
-    # print(pdist)
 
     return pdist
 
