@@ -5,7 +5,6 @@ from numpy import ndarray
 from clusteredheatmap.algos.distance import DistFunName
 from clusteredheatmap.algos.linkage import LinkageFunName
 from clusteredheatmap.types import (
-    ClusteringFun,
     DistFun,
     HeatmapMatrix,
     LinkageFun,

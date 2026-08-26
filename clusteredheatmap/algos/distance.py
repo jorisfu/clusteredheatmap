@@ -5,17 +5,13 @@ import numpy.typing as npt
 import typing
 from typing import Literal
 
-import numpy_typing_compat
 import scipy
 from scipy.spatial.distance import squareform
 import nandist
 
 from clusteredheatmap.algos.gmm_missing.gmm import GMMMissing
-from clusteredheatmap.algos.misc import ecmnmle
 from clusteredheatmap.algos.modelselection import (
-    corrected_aic,
     get_best_gmm,
-    no_of_gmm_params,
 )
 from clusteredheatmap.types import DistFun, Vector, PDistFun
 
@@ -123,7 +119,7 @@ def mesquita_eed(
 
     used_model = gmm
     if used_model is None:
-        used_model = get_best_gmm(min_k, max_k, max_iter, "AICc", data)
+        used_model = get_best_gmm(min_k, max_k, max_iter, "BIC", data)
 
     n_components = used_model.n_components
     estimated_covars = used_model.covariances_

@@ -1,7 +1,6 @@
 from typing import Literal
 
-from clusteredheatmap.algos.distance import DistFunName
-from clusteredheatmap.types import ClusteringFun, DistFun, LinkageFun
+from clusteredheatmap.types import LinkageFun
 import scipy
 
 LinkageFunName = Literal[

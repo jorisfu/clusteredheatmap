@@ -275,7 +275,7 @@ class PlotlyVisuBuilder:
         y_layout_ratios: list[int] = []
         x_layout_ratios: list[int] = []
 
-        for char in self._vertical_layout:
+        for char in self._vertical_layout[::-1]:
             match char:
                 case "d":
                     y_layout_ratios.append(
@@ -312,8 +312,6 @@ class PlotlyVisuBuilder:
                     )
                 case _:
                     pass
-
-        y_layout_ratios = y_layout_ratios[::-1]
 
         def get_layout_domain_ratios(custom_ratios: list[int]) -> list[list[float]]:
             normalized_ratios: list[float] = [

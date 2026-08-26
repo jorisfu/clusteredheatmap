@@ -1,5 +1,4 @@
-from collections import namedtuple
-from typing import Any, Callable, NamedTuple
+from typing import Callable, NamedTuple
 import numpy as np
 import numpy.typing as npt
 
