@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Callable, Literal
 import numpy as np
 import numpy.typing as npt
 
@@ -8,7 +8,6 @@ InfoCriterion = Literal["AICc", "BIC"]
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 def bic(log_likelihood: float, n_observations: int, n_params: int) -> float:
     """
@@ -67,7 +66,7 @@ def get_best_gmm(
     """
     n_observations, n_features = data.shape
 
-    criterion_fun = None
+    criterion_fun: Callable[[float, int, int], float] | None = None
     match criterion:
         case "AICc":
             criterion_fun = corrected_aic

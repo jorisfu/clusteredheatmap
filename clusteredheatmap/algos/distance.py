@@ -81,7 +81,7 @@ def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
             "The two input vectors have no overlapping observed features, cannot estimate distance using PDS."
         )
 
-    weight = len(nan_mask) / (len(nan_mask) - sum(nan_mask))
+    weight = len(a) / (len(a) - sum(nan_mask))
 
     masked_a = a[~nan_mask]
     masked_b = b[~nan_mask]
@@ -269,7 +269,7 @@ def eirola_esd_gmm(
     s = np.full(
         (n_observations), 0.0
     )  # Holds the summed variance terms for each observation (equation (11))
-    imputed_data = np.full(data.shape, 0.0)
+    cond_mean = np.full(data.shape, 0.0)
     estimated_covars = used_model.covariances_
     estimated_means = used_model.mu_
     estimated_resp = used_model.predict_proba()  # This is t
@@ -308,7 +308,7 @@ def eirola_esd_gmm(
 
             # See equation (12)
             imp_x_i += t_ik * imp_x_ik
-            imputed_data[i] = imp_x_i
+            cond_mean[i] = imp_x_i
 
             imp_Sigma_i += t_ik * (imp_Sigma_ik + imp_x_ik @ imp_x_ik.transpose())
 
@@ -320,7 +320,7 @@ def eirola_esd_gmm(
     ## Step 4: Esimate distances
     ##
 
-    pdist = scipy.spatial.distance.pdist(imputed_data, "sqeuclidean")
+    pdist = scipy.spatial.distance.pdist(cond_mean, "sqeuclidean")
 
     for i in range(n_observations):
         for j in range(i + 1, n_observations):
@@ -348,6 +348,28 @@ _pdist_mapping: dict[DistFunName, PDistFun] = {
     "mesquita_eed": mesquita_eed,
 }
 
+def _completecase(dist: DistFun) -> DistFun:
+    """
+    Returns a distance function that applies the passed function only
+    to the subset of both vector's features that are pairwise complete.
+    Generally not recommended as the resulting metric is not adjusted for
+    loss of dimensionality.
+    """
+
+    def wrapped(a: Vector, b: Vector, **kwargs: Any):
+        nan_mask = np.isnan(a) | np.isnan(b)
+
+        if len(a) == np.sum(nan_mask):
+            raise DistanceError(
+                "The two input vectors have no overlapping observed features, cannot estimate distance using complete case analysis."
+            )
+        masked_a = a[~nan_mask]
+        masked_b = b[~nan_mask]
+        d = dist(masked_a, masked_b, **kwargs)
+
+        return d
+
+    return wrapped
 
 def get_preferred_pdist_implementation(
     distance: DistFunName | DistFun,
@@ -360,29 +382,6 @@ def get_preferred_pdist_implementation(
     a condensed distance matrix from an array of observation
     vectors.
     """
-
-    def _completecase(dist: DistFun) -> DistFun:
-        """
-        Returns a distance function that applies the passed function only
-        to the subset of both vector's features that are pairwise complete.
-        Generally not recommended as the resulting metric is not adjusted for
-        loss of dimensionality.
-        """
-
-        def wrapped(a: Vector, b: Vector, **kwargs: Any):
-            nan_mask = np.isnan(a) | np.isnan(b)
-
-            if len(a) == np.sum(nan_mask):
-                raise DistanceError(
-                    "The two input vectors have no overlapping observed features, cannot estimate distance using complete case analysis."
-                )
-            masked_a = a[~nan_mask]
-            masked_b = b[~nan_mask]
-            d = dist(masked_a, masked_b, **kwargs)
-
-            return d
-
-        return wrapped
 
     if distance_args is None:
         distance_args = {}

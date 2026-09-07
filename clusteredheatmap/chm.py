@@ -15,16 +15,20 @@ import clusteredheatmap.algos.linkage as link
 import pandas as pd
 import scipy
 
+DistSpec = DistFunName | DistFun
+DistArgs = dict[str, Any] | None
+
+LinkageSpec = LinkageFunName | LinkageFun
 
 class ClusteredHeatMap:
     def __init__(
         self,
         data: pd.DataFrame,
         *,
-        distance: DistFunName | DistFun = "euclidean",
-        distance_args: dict[str, Any] | None = None,
-        use_completecase_analysis: bool = False,
-        linkage: LinkageFunName | LinkageFun = "single",
+        distance: DistSpec | tuple[DistSpec, DistSpec] = "euclidean",
+        distance_args: DistArgs | tuple[DistArgs, DistArgs] = None,
+        use_completecase_analysis: bool | tuple[bool, bool] = False,
+        linkage: LinkageSpec | tuple[LinkageSpec, LinkageSpec] = "single",
         cluster_rows: bool = True,
         cluster_columns: bool = True,
         column_group_mappings: dict[str, dict[str, str]] | None = None,
@@ -46,16 +50,22 @@ class ClusteredHeatMap:
         :param data: The data to cluster in pandas wide format
         :param distance: The name of the distance function to use or a custom distance function.
             Custom distance functions must be compatible with scipy.spatial.distance functions
-            betweeen two vectors
+            betweeen two vectors.
+            Different distance functions for rows and columns can be selected by passing
+            a tuple, specifying row distance at index 0 and column distance at 1.
         :param distance_args: Additional arguments passed to the distance function.
             Only applied if distance function name is given, passed callables
-            must have their additional arguments hardcoded (e.g. with a lambda)
+            must have their additional arguments hardcoded (e.g. with a lambda).
+            Different arguments for row/col distance are passed as a tuple (see distance param).
         :param use_completecase_analysis: Whether or not to use complete case
             analysis for distance between vectors (only use features with pairwise
             completeness without any adjustment). Generally NOT RECOMMENDED.
             Only applies to passed distance functions and scipy provided functions.
+            Can be passed as tuple for separate row/col setting (see distance param).
         :param linkage: The name of the linkage function to use or a custom linkage function.
-            Custom linkage functions must be compatible with scipy.cluster.hierarchy.linkage
+            Custom linkage functions must be compatible with scipy.cluster.hierarchy.linkage.
+            Different linkage functions for rows and columns can be selected by passing
+            a tuple, specifying row linkage at index 0 and column linkage at 1.
         :param column_group_mappings: Dicts mapping column labels to groups.
             Multiple mappings are supported, each key in this dict gets used as the respecitve
             mapping's label.
@@ -93,10 +103,33 @@ class ClusteredHeatMap:
         self.cluster_rows: bool = cluster_rows
         self.cluster_columns: bool = cluster_columns
 
-        self.pdist_method: PDistFun = dist.get_preferred_pdist_implementation(
-            distance, distance_args, use_completecase_analysis
-        )
-        self.linkage_method: LinkageFun = link.get_preferred_implementation(linkage)
+        if isinstance(distance, tuple):
+            # Propagate no distance args, avoid annoying error
+            if distance_args is None:
+                distance_args = (None, None)
+            assert isinstance(distance_args, tuple), "Distance parameters must be consistent between tuples and non-tuples."
+            assert isinstance(use_completecase_analysis, tuple), "Distance parameters must be consistent between tuples and non-tuples."
+            self.pdist_method_rows: PDistFun = dist.get_preferred_pdist_implementation(
+                distance[0], distance_args[0], use_completecase_analysis[0]
+            )
+            self.pdist_method_cols: PDistFun = dist.get_preferred_pdist_implementation(
+                distance[1], distance_args[1], use_completecase_analysis[1]
+            )
+
+        else:
+            assert not isinstance(distance_args, tuple), "Distance parameters must be consistent between tuples and non-tuples."
+            assert not isinstance(use_completecase_analysis, tuple), "Distance parameters must be consistent between tuples and non-tuples."
+            self.pdist_method_rows: PDistFun = dist.get_preferred_pdist_implementation(
+                distance, distance_args, use_completecase_analysis
+            )
+            self.pdist_method_cols: PDistFun = self.pdist_method_rows
+
+        if isinstance(linkage, tuple):
+            self.linkage_method_rows: LinkageFun = link.get_preferred_implementation(linkage[0])
+            self.linkage_method_cols: LinkageFun = link.get_preferred_implementation(linkage[1])
+        else:
+            self.linkage_method_rows: LinkageFun = link.get_preferred_implementation(linkage)
+            self.linkage_method_cols: LinkageFun = self.linkage_method_rows
 
         cols_permutation = list(range(len(self.data_cols)))
         rows_permutation = list(range(len(self.data_rows)))
@@ -106,10 +139,10 @@ class ClusteredHeatMap:
 
         if self.cluster_rows:
             if self.distance_matrix_rows is None:
-                self.distance_matrix_rows = self.pdist_method(self.data_rows)
+                self.distance_matrix_rows = self.pdist_method_rows(self.data_rows)
 
             if self.linkage_matrix_rows is None:
-                self.linkage_matrix_rows = self.linkage_method(
+                self.linkage_matrix_rows = self.linkage_method_rows(
                     self.distance_matrix_rows
                 )
 
@@ -128,10 +161,10 @@ class ClusteredHeatMap:
         self.linkage_matrix_cols: ndarray | None = linkage_matrix_cols
         if self.cluster_columns:
             if self.distance_matrix_cols is None:
-                self.distance_matrix_cols = self.pdist_method(self.data_cols)
+                self.distance_matrix_cols = self.pdist_method_cols(self.data_cols)
 
             if self.linkage_matrix_cols is None:
-                self.linkage_matrix_cols = self.linkage_method(
+                self.linkage_matrix_cols = self.linkage_method_cols(
                     self.distance_matrix_cols
                 )
 
