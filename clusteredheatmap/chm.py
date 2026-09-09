@@ -41,6 +41,7 @@ class ClusteredHeatMap:
         distance_matrix_cols: ndarray | None = None,
         linkage_matrix_cols: ndarray | None = None,
         optimal_leaf_ordering: bool = True,
+        is_symmetric: bool = False,
     ) -> None:
         """
         Computes the necessary data for a clustered heatmap.
@@ -91,6 +92,8 @@ class ClusteredHeatMap:
             (see scipy.cluster.hierarchy.linkage docs)
         :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
             the dendrograms.
+        :param is_symmetric: Whether or not the input data should be interpreted as 
+            a symmetric matrix. Requires cluster_rows and cluster_columns to be True.
 
         :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
         :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
@@ -102,6 +105,13 @@ class ClusteredHeatMap:
 
         self.cluster_rows: bool = cluster_rows
         self.cluster_columns: bool = cluster_columns
+
+        if is_symmetric:
+            if not (cluster_rows and cluster_columns):
+                raise ValueError("Cannot disable clustering on any axis for symmetric inputs.")
+
+            if not self.data_rows.shape[0] == self.data_rows.shape[1]:
+                raise ValueError("Input cannot be interpreted as symmetric since matrix is not square.")
 
         if isinstance(distance, tuple):
             # Propagate no distance args, avoid annoying error
@@ -136,7 +146,6 @@ class ClusteredHeatMap:
 
         self.distance_matrix_rows: ndarray | None = distance_matrix_rows
         self.linkage_matrix_rows: ndarray | None = linkage_matrix_rows
-
         if self.cluster_rows:
             if self.distance_matrix_rows is None:
                 self.distance_matrix_rows = self.pdist_method_rows(self.data_rows)
@@ -160,20 +169,26 @@ class ClusteredHeatMap:
         self.distance_matrix_cols: ndarray | None = distance_matrix_cols
         self.linkage_matrix_cols: ndarray | None = linkage_matrix_cols
         if self.cluster_columns:
-            if self.distance_matrix_cols is None:
-                self.distance_matrix_cols = self.pdist_method_cols(self.data_cols)
 
-            if self.linkage_matrix_cols is None:
-                self.linkage_matrix_cols = self.linkage_method_cols(
-                    self.distance_matrix_cols
-                )
+            if is_symmetric:
+                self.distance_matrix_cols = self.distance_matrix_rows.copy()
+                self.linkage_matrix_cols = self.linkage_matrix_rows.copy()
 
-            if optimal_leaf_ordering:
-                self.linkage_matrix_cols = (
-                    scipy.cluster.hierarchy.optimal_leaf_ordering(
-                        self.linkage_matrix_cols, self.distance_matrix_cols
+            else:
+                if self.distance_matrix_cols is None:
+                    self.distance_matrix_cols = self.pdist_method_cols(self.data_cols)
+
+                if self.linkage_matrix_cols is None:
+                    self.linkage_matrix_cols = self.linkage_method_cols(
+                        self.distance_matrix_cols
                     )
-                )
+
+                if optimal_leaf_ordering:
+                    self.linkage_matrix_cols = (
+                        scipy.cluster.hierarchy.optimal_leaf_ordering(
+                            self.linkage_matrix_cols, self.distance_matrix_cols
+                        )
+                    )
 
             cols_permutation = scipy.cluster.hierarchy.leaves_list(
                 self.linkage_matrix_cols
