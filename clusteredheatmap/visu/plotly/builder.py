@@ -345,7 +345,7 @@ class PlotlyVisuBuilder:
     ##
 
     def _default_distinct_colorgen(self, n_colors: int) -> Generator[Color, None, None]:
-        colors = distinctipy.get_colors(n_colors)
+        colors = distinctipy.get_colors(n_colors, pastel_factor=0.1)
         colors = [(int(r*255), int(g*255), int(b*255)) for (r, g, b) in colors]
         hexcodes = ['#{:02x}{:02x}{:02x}'.format(r, g, b) for (r, g, b) in colors]
         return (y for y in hexcodes)
