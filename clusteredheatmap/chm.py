@@ -210,6 +210,11 @@ class ClusteredHeatMap:
             row_group_mappings if row_group_mappings is not None else dict()
         )
 
+        self.n_groups: int = (
+            sum([len(set(m.values())) for m in self.column_group_mappings.values()]) +
+            sum([len(set(m.values())) for m in self.row_group_mappings.values()])
+        )
+
         self.permuted_row_fulldescriptions: list[str] = (
             stringify_labels_with_group_mappings(
                 self.permuted_row_labels, self.row_group_mappings
@@ -224,6 +229,7 @@ class ClusteredHeatMap:
         self.data_row_title: str = data_row_title
         self.data_column_title: str = data_column_title
         self.data_z_title: str = data_z_title
+
 
 
 def stringify_labels_with_group_mappings(

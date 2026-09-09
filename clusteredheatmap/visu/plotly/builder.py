@@ -16,6 +16,7 @@ import plotly.figure_factory as ff
 import plotly.colors
 from plotly.express.colors import qualitative as PLOTLY_COLORSCALES_QUALITATIVE
 
+import distinctipy
 
 class LayoutError(Exception):
     """
@@ -116,7 +117,7 @@ class PlotlyVisuBuilder:
         ).plotly_name.replace("axis", "")
 
         # Used for group markers if no custom colors are given
-        self._distinct_colorgen: Generator[Color] = self._default_distinct_colorgen()
+        self._distinct_colorgen: Generator[Color] = self._default_distinct_colorgen(self.chm.n_groups)
 
         # Required for size/pos of colorbars
         self._colorbar_amount: int = (
@@ -343,9 +344,11 @@ class PlotlyVisuBuilder:
     ## COLORBARS AND DISTINCT COLOR SEQUENCE GENERATION
     ##
 
-    # TODO: Replace this
-    def _default_distinct_colorgen(self) -> Generator[Color, None, None]:
-        return (y for y in PLOTLY_COLORSCALES_QUALITATIVE.Bold)
+    def _default_distinct_colorgen(self, n_colors: int) -> Generator[Color, None, None]:
+        colors = distinctipy.get_colors(n_colors)
+        colors = [(int(r*255), int(g*255), int(b*255)) for (r, g, b) in colors]
+        hexcodes = ['#{:02x}{:02x}{:02x}'.format(r, g, b) for (r, g, b) in colors]
+        return (y for y in hexcodes)
 
     def _colorbar_position_generator(self, total_amount: int):
         for i in range(total_amount):
