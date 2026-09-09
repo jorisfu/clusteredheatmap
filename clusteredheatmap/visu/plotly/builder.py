@@ -470,9 +470,7 @@ class PlotlyVisuBuilder:
 
             :return: go.Heatmap object
             """
-
-            background_data = data.copy()
-            background_data.fill(0)
+            background_data = np.vectorize(lambda x: 1 if np.isnan(x) else np.nan)(data)
 
             background_map = go.Heatmap(
                 z=background_data,
