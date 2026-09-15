@@ -332,7 +332,7 @@ def eirola_esd_gmm(
 
 
 def eirola_esd_mvn(
-    data: npt.NDArray[np.float64], max_iter: int = 400
+    data: npt.NDArray[np.float64], max_iter: int = 200
 ) -> npt.NDArray[np.float64]:
     return eirola_esd_gmm(data, min_k=1, max_k=1, max_iter=max_iter)
 
