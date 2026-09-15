@@ -123,6 +123,10 @@ class PlotlyVisuBuilder:
         self._colorbar_amount: int = (
             1 + len(self.chm.row_group_mappings) + len(self.chm.column_group_mappings)
         )
+
+        if np.any(np.isnan(self.chm.data_cols)):
+            self._colorbar_amount += 1
+
         self._colorbar_position: Generator[float, None, None] = (
             self._colorbar_position_generator(self._colorbar_amount)
         )
@@ -345,7 +349,7 @@ class PlotlyVisuBuilder:
     ##
 
     def _default_distinct_colorgen(self, n_colors: int) -> Generator[Color, None, None]:
-        colors = distinctipy.get_colors(n_colors, pastel_factor=0.1)
+        colors = distinctipy.get_colors(n_colors, pastel_factor=0.1, rng=123)
         colors = [(int(r*255), int(g*255), int(b*255)) for (r, g, b) in colors]
         hexcodes = ['#{:02x}{:02x}{:02x}'.format(r, g, b) for (r, g, b) in colors]
         return (y for y in hexcodes)
@@ -426,6 +430,7 @@ class PlotlyVisuBuilder:
         relative_width: int = 80,
         relative_height: int = 80,
         nan_color: Color = "#616161",
+        nan_label: str = "Missing value",
         colorscale: str | Colorscale = DEFAULT_HEATMAP_COLORSCALE,
         _zmin: float | str | None = None,
         _zmax: float | str | None = None,
@@ -478,7 +483,13 @@ class PlotlyVisuBuilder:
             background_map = go.Heatmap(
                 z=background_data,
                 colorscale=[(0.0, nan_color), (1.0, nan_color)],
-                showscale=False,
+                showscale=True,
+                colorbar=self._new_colorbar(
+                    title="",
+                    tickmode="array",
+                    tickvals=[1],
+                    ticktext=[nan_label],
+                ),
             )
 
             return background_map
