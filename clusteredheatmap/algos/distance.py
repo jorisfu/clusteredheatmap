@@ -99,7 +99,7 @@ def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
 def mesquita_eed(
     data: npt.NDArray[np.float64],
     min_k: int = 1,
-    max_k: int = 10,
+    max_k: int = 4,
     max_iter: int = 200,
     gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
