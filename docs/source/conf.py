@@ -2,7 +2,6 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path('../../clusteredheatmap').resolve()))
 sys.path.insert(0, str(Path('../..').resolve()))
 
 project = "clusteredheatmap"
