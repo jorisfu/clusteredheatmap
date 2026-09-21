@@ -21,6 +21,71 @@ DistArgs = dict[str, Any] | None
 LinkageSpec = LinkageFunName | LinkageFun
 
 class ClusteredHeatMap:
+    """
+    Computes the necessary data for a clustered heatmap.
+
+    :param data: The data to cluster in pandas wide format
+    :param distance: The name of the distance function to use or a custom distance function.
+        Custom distance functions must be compatible with scipy.spatial.distance functions
+        betweeen two vectors.
+        Different distance functions for rows and columns can be selected by passing
+        a tuple, specifying row distance at index 0 and column distance at 1.
+    :param distance_args: Additional arguments passed to the distance function.
+        Only applied if distance function name is given, passed callables
+        must have their additional arguments hardcoded (e.g. with a lambda).
+        Different arguments for row/col distance are passed as a tuple (see :param:`distance`).
+    :param use_completecase_analysis: Whether or not to use complete case
+        analysis for distance between vectors (only use features with pairwise
+        completeness without any adjustment). Generally NOT RECOMMENDED.
+        Only applies to passed distance functions and scipy provided functions.
+        Can be passed as tuple for separate row/col setting (see :param:`distance`).
+    :param linkage: The name of the linkage function to use or a custom linkage function.
+        Custom linkage functions must be compatible with 
+        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
+        Different linkage functions for rows and columns can be selected by passing
+        a tuple, specifying row linkage at index 0 and column linkage at 1.
+    :param column_group_mappings: Dicts mapping column labels to groups.
+        Multiple mappings are supported, each key in this dict gets used as the respecitve
+        mapping's label.
+    :param row_group_mappings: Dicts mapping row labels to groups.
+        Multiple mappings are supported, each key in this dict gets used as the respecitve
+        mapping's label.
+    :param cluster_rows: True iff clustering is to be performed per-row
+    :param cluster_columns: True iff clustering is to be performed per-column
+    :param data_column_title: Title for the data columns, i.e. what each column represents
+        (e.g. "Sample")
+    :param data_row_title: Title for the data rows, i.e. what each row represents
+        (e.g. "Protein")
+    :param data_z_title: Title for the data values, i.e. what the z-values represent
+        (e.g. "Intensity")
+    :param distance_matrix_rows: Condensed distance matrix for distance between rows
+        in the data. Overrides calculation if given. Must be in scipy condensed distance
+        matrix format 
+        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>` )
+    :param distance_matrix_cols: Condensed distance matrix for distance between columns
+        in the data. Overrides calculation if given. Must be in scipy condensed distance
+        matrix format 
+        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>` )
+    :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
+        data. Overrides calculation if given. Must be in scipy linkage matrix format
+        (see
+        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
+        )
+    :param linkage_matrix_cols: Linkage matrix for clustering between columns in the
+        data. Overrides calculation if given. Must be in scipy linkage matrix format
+        (see
+        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
+        )
+    :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
+        the dendrograms.
+    :param is_symmetric: Whether or not the input data should be interpreted as 
+        a symmetric matrix. Requires cluster_rows and cluster_columns to be True.
+
+    :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
+    :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
+    :ivar permuted_data: The rearranged data for the heatmap as a 2D numpy array
+    """
+
     def __init__(
         self,
         data: pd.DataFrame,
@@ -43,62 +108,6 @@ class ClusteredHeatMap:
         optimal_leaf_ordering: bool = True,
         is_symmetric: bool = False,
     ) -> None:
-        """
-        Computes the necessary data for a clustered heatmap.
-        To obtain a visualization after computation, use one of the get_visualization_* methods
-        depending on your desired visualization tool.
-
-        :param data: The data to cluster in pandas wide format
-        :param distance: The name of the distance function to use or a custom distance function.
-            Custom distance functions must be compatible with scipy.spatial.distance functions
-            betweeen two vectors.
-            Different distance functions for rows and columns can be selected by passing
-            a tuple, specifying row distance at index 0 and column distance at 1.
-        :param distance_args: Additional arguments passed to the distance function.
-            Only applied if distance function name is given, passed callables
-            must have their additional arguments hardcoded (e.g. with a lambda).
-            Different arguments for row/col distance are passed as a tuple (see distance param).
-        :param use_completecase_analysis: Whether or not to use complete case
-            analysis for distance between vectors (only use features with pairwise
-            completeness without any adjustment). Generally NOT RECOMMENDED.
-            Only applies to passed distance functions and scipy provided functions.
-            Can be passed as tuple for separate row/col setting (see distance param).
-        :param linkage: The name of the linkage function to use or a custom linkage function.
-            Custom linkage functions must be compatible with scipy.cluster.hierarchy.linkage.
-            Different linkage functions for rows and columns can be selected by passing
-            a tuple, specifying row linkage at index 0 and column linkage at 1.
-        :param column_group_mappings: Dicts mapping column labels to groups.
-            Multiple mappings are supported, each key in this dict gets used as the respecitve
-            mapping's label.
-        :param row_group_mappings: Dicts mapping row labels to groups.
-            Multiple mappings are supported, each key in this dict gets used as the respecitve
-            mapping's label.
-        :param cluster_rows: True iff clustering should be performed per-row
-        :param cluster_columns: True iff clustering should be performed per-column
-        :param data_column_title: Title for the data columns, i.e. what each column represents
-        :param data_row_title: Title for the data rows, i.e. what each row represents
-        :param data_z_title: Title for the data values, i.e. what the heat values represent
-        :param distance_matrix_rows: Condensed distance matrix for distance between rows
-            in the data. Overrides calculation if given. Must be in scipy condensed distance
-            matrix format (see scipy.spatial.distance.pdist docs)
-        :param distance_matrix_cols: Condensed distance matrix for distance between columns
-            in the data. Overrides calculation if given. Must be in scipy condensed distance
-            matrix format (see scipy.spatial.distance.pdist docs)
-        :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
-            data. Overrides calculation if given. Must be in scipy linkage matrix format
-            (see scipy.cluster.hierarchy.linkage docs)
-        :param linkage_matrix_cols: Linkage matrix for clustering between columns in the
-            data. Overrides calculation if given. Must be in scipy linkage matrix format
-            (see scipy.cluster.hierarchy.linkage docs)
-        :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
-            the dendrograms.
-        :param is_symmetric: Whether or not the input data should be interpreted as 
-            a symmetric matrix. Requires cluster_rows and cluster_columns to be True.
-
-        :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
-        :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
-        :ivar permuted_data: The rearranged data for the heatmap as a 2D numpy array
-        """
         self.data: pd.DataFrame = data
         self.data_rows: ndarray = self.data.to_numpy()
         self.data_cols: ndarray = self.data.T.to_numpy()
