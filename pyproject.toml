@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clusteredheatmap"
-version = "0.0.1"
+version = "0.0.6"
 authors = [
   { name="Joris Funk", email="joris.funk@student.hpi.uni-potsdam.de" },
 ]
-description = "Tools for hierarchical clustering and clustered heat maps / clustergrams"
+description = "Tools for hierarchical clustering and clustered heatmaps / clustergrams"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
