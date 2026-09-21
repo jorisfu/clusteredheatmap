@@ -66,7 +66,7 @@ class ClusteredHeatMap:
     :param distance_matrix_cols: Condensed distance matrix for distance between columns
         in the data. Overrides calculation if given. Must be in scipy condensed distance
         matrix format 
-        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>` )
+        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>`__ )
     :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
         data. Overrides calculation if given. Must be in scipy linkage matrix format
         (see `scipylinkage`__.)
