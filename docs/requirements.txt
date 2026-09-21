@@ -3,3 +3,6 @@ numpy
 pandas
 scipy
 nandist
+scikit-learn
+distinctipy
+plotly
