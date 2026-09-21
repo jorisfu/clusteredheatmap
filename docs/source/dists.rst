@@ -1,3 +1,4 @@
+.. _dists:
 Integrated Distance Functions
 =============================
 

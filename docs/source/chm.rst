@@ -1,3 +1,4 @@
+.. _chm:
 The ``ClusteredHeatMap`` class
 ==============================
 

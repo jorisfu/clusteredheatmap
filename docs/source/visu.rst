@@ -1,3 +1,4 @@
+.. _pvb:
 Visualising Clustered Heatmaps
 ==============================
 

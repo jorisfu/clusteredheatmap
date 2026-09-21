@@ -110,7 +110,7 @@ class ClusteredHeatMap:
         distance: DistSpec | tuple[DistSpec, DistSpec] = "euclidean",
         distance_args: DistArgs | tuple[DistArgs, DistArgs] = None,
         use_completecase_analysis: bool | tuple[bool, bool] = False,
-        linkage: LinkageSpec | tuple[LinkageSpec, LinkageSpec] = "single",
+        linkage: LinkageSpec | tuple[LinkageSpec, LinkageSpec] = "complete",
         cluster_rows: bool = True,
         cluster_columns: bool = True,
         column_group_mappings: dict[str, dict[str, str]] | None = None,
