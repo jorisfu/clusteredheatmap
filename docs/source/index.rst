@@ -1,6 +1,14 @@
 clusteredheatmap documentation
 ==============================
 
-Test file
+These documents contain user documentation for the clusteredheatmap library.
 
-.. autoclass:: clusteredheatmap.chm::ClusteredHeatMap
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents
+
+  quickstart
+  chm
+  visu
+  dists
+
