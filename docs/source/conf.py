@@ -1,4 +1,8 @@
 # https://github.com/readthedocs-examples/example-sphinx-basic/blob/main/docs/conf.py
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path('..').resolve()))
 
 project = "clusteredheatmap"
 copyright = "2026, Joris Funk"
