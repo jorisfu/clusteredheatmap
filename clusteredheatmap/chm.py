@@ -26,19 +26,20 @@ class ClusteredHeatMap:
 
     :param data: The data to cluster in pandas wide format
     :param distance: The name of the distance function to use or a custom distance function.
-        Custom distance functions must be compatible with scipy.spatial.distance functions
-        betweeen two vectors.
+        Custom distance functions must be compatible with 
+        scipy.spatial.distance 
+        functions betweeen two vectors.
         Different distance functions for rows and columns can be selected by passing
         a tuple, specifying row distance at index 0 and column distance at 1.
     :param distance_args: Additional arguments passed to the distance function.
         Only applied if distance function name is given, passed callables
         must have their additional arguments hardcoded (e.g. with a lambda).
-        Different arguments for row/col distance are passed as a tuple (see :param:`distance`).
+        Different arguments for row/col distance are passed as a tuple (see ``distance`` parameter).
     :param use_completecase_analysis: Whether or not to use complete case
         analysis for distance between vectors (only use features with pairwise
-        completeness without any adjustment). Generally NOT RECOMMENDED.
+        completeness without any adjustment). Generally not recommended.
         Only applies to passed distance functions and scipy provided functions.
-        Can be passed as tuple for separate row/col setting (see :param:`distance`).
+        Can be passed as tuple for separate row/col setting (see ``distance`` parameter).
     :param linkage: The name of the linkage function to use or a custom linkage function.
         Custom linkage functions must be compatible with 
         `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
@@ -68,14 +69,10 @@ class ClusteredHeatMap:
         (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>` )
     :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
         data. Overrides calculation if given. Must be in scipy linkage matrix format
-        (see
-        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
-        )
+        (see `scipylinkage`__.)
     :param linkage_matrix_cols: Linkage matrix for clustering between columns in the
         data. Overrides calculation if given. Must be in scipy linkage matrix format
-        (see
-        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`.
-        )
+        (see `scipy linkage`__.)
     :param optimal_leaf_ordering: Whether or not to use optimal leaf ordering for
         the dendrograms.
     :param is_symmetric: Whether or not the input data should be interpreted as 
@@ -84,6 +81,9 @@ class ClusteredHeatMap:
     :ivar linkage_matrix_rows: Linkage matrix for clustering of rows
     :ivar linkage_matrix_cols: Linkage matrix for clustering of columns
     :ivar permuted_data: The rearranged data for the heatmap as a 2D numpy array
+
+    .. _scipy linkage: https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+    .. _scipylinkage: https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
     """
 
     def __init__(
