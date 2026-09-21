@@ -28,7 +28,7 @@ class ClusteredHeatMap:
 
     :param distance: The name of the distance function to use or a custom distance function.
         Custom distance functions must be compatible with 
-        (see `scipy.spatial.distance <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`__ )
+        (see `scipy.spatial.distance <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`__)
         functions betweeen two vectors.
         Different distance functions for rows and columns can be selected by passing
         a tuple, specifying row distance at index 0 and column distance at 1.
@@ -46,7 +46,7 @@ class ClusteredHeatMap:
 
     :param linkage: The name of the linkage function to use or a custom linkage function.
         Custom linkage functions must be compatible with 
-        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`__ .
+        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`__.
         Different linkage functions for rows and columns can be selected by passing
         a tuple, specifying row linkage at index 0 and column linkage at 1.
 
@@ -74,18 +74,17 @@ class ClusteredHeatMap:
     :param distance_matrix_rows: Condensed distance matrix for distance between rows
         in the data. Overrides calculation if given. Must be in scipy condensed distance
         matrix format 
-        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>__` )
+        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>`__)
 
     :param distance_matrix_cols: Condensed distance matrix for distance between columns
         in the data. Overrides calculation if given. Must be in scipy condensed distance
         matrix format 
-        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>`__ )
+        (see `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html>`__)
 
     :param linkage_matrix_rows: Linkage matrix for clustering between rows in the
         data. Overrides calculation if given. Must be in scipy linkage matrix format
         (see
-        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`__
-        )
+        `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`__)
 
     :param linkage_matrix_cols: Linkage matrix for clustering between columns in the
         data. Overrides calculation if given. Must be in scipy linkage matrix format
