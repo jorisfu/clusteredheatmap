@@ -3,5 +3,5 @@ clusteredheatmap documentation
 
 Test file
 
-.. automodule:: clusteredheatmap
+.. automodule:: chm
    :members:

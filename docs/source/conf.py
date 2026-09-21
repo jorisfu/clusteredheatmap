@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path('..').resolve()))
+sys.path.insert(0, str(Path('..', 'clusteredheatmap').resolve()))
 
 project = "clusteredheatmap"
 copyright = "2026, Joris Funk"
