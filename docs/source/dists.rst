@@ -25,4 +25,4 @@ Other methods
 *************
 
 .. automodule:: clusteredheatmap.algos.distance
-   :members:
+   :exclude-members: DistanceError, get_preferred_pdist_implementation

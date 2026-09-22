@@ -64,6 +64,7 @@ class PlotlyVisuBuilder:
     :param chm: the ClusteredHeatMap object to visualize.
     :param vertical_layout: Layout of elements on the vertical axis of the plot.
         Elements include:
+
         - 'd' for dendrogram
         - 'g' for group markers
         - 'h' for heatmap
@@ -163,8 +164,7 @@ class PlotlyVisuBuilder:
 
     def get_figure(self) -> Figure:
         """
-        Returns the constructed figure. ALWAYS use this instead of accessing
-        _fig directly to obtain a proper layout.
+        Returns the constructed figure.
         """
         # For performance reasons we only do this right before returning the fully constructed figure
         self._apply_display_ratios()
@@ -444,18 +444,20 @@ class PlotlyVisuBuilder:
         :param relative_width: Relative width of the heatmap subplot within the visualization
         :param nan_color: The color for heatmap cells corresponding to z-values of NaN (missing values)
         :param colorscale: The colorscale to use. May be either
-            a string (name of one of the default plotly colorscales, see https://plotly.com/python/builtin-colorscales/) or
+            a string (name of one of the `default plotly colorscales <https://plotly.com/python/builtin-colorscales/>`__) or
             a custom colorscale (list like [[0.0, "#000000"], [0.5, "#fce300"], [1.0, "#abccba"]]) or
             None, in which case a default red-white-blue colorscale is used.
-            Note that custom colorscales MUST include a color value at 0.5 (midpoint) for layouting reasons
+            Note that custom colorscales MUST include a color value at 0.5 (midpoint) for layouting reasons.
         :param _zmin: the data z-value corresponding to the minimum value (0.0) of the colorscale.
             Cells with z-values lower than this will use the lowest color.
         :param _zmid: the data z-value corresponding to the center of the colorscale.
             The resulting colorscale's center point will be adjusted to this.
             The following strings are also supported:
-                "mean": midpoint is the mean of all data points
-                "median": midpoint is the median of all data points
-        :param _zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale
+
+            - "mean": midpoint is the mean of all data points
+            - "median": midpoint is the median of all data points
+
+        :param _zmax: the data z-value corresponding to the maximum value (1.0) of the colorscale.
             Cells with z-values higher than this will use the highest color.
         :param _ticktext_prefix: For the zmin, zmid and zmax ticks on the colorbar legend,
             strings to prefix to the numerical values (e.g. ("min: ", "median: ", "max: "))
@@ -603,8 +605,10 @@ class PlotlyVisuBuilder:
         Adds the dendrogram visualizing the clustering of the data columns to the visualization.
 
         :param relative_height: Relative height of the dendrogram subplot within the visualization
-        :param color_threshold: [TODO docstring]
-        :param colorscale: [TODO docstring]
+        :param color_threshold: Value at which the separation of clusters will be made.
+            See `plotly create_dendrogram <https://plotly.com/python-api-reference/generated/plotly.figure_factory.create_dendrogram.html>`__
+        :param colorscale: Optional colorscale for the dendrogram.
+            See `plotly create_dendrogram <https://plotly.com/python-api-reference/generated/plotly.figure_factory.create_dendrogram.html>`__
         """
         if not self.chm.cluster_columns:
             raise ValueError(
@@ -657,8 +661,10 @@ class PlotlyVisuBuilder:
         Adds the dendrogram visualizing the clustering of the data rows to the visualization.
 
         :param relative_width: Relative width of the dendrogram subplot within the visualization
-        :param color_threshold: [TODO docstring]
-        :param colorscale: [TODO docstring]
+        :param color_threshold: Value at which the separation of clusters will be made.
+            See `plotly create_dendrogram <https://plotly.com/python-api-reference/generated/plotly.figure_factory.create_dendrogram.html>`__
+        :param colorscale: Optional colorscale for the dendrogram.
+            See `plotly create_dendrogram <https://plotly.com/python-api-reference/generated/plotly.figure_factory.create_dendrogram.html>`__
         """
         if not self.chm.cluster_rows:
             raise ValueError("Rows were not clustered, no dendrogram can be plotted.")

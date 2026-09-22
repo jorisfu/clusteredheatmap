@@ -72,6 +72,7 @@ class DistanceError(Exception):
 def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
     """
     Partial Distance Strategy as proposed by Dixon.
+    Estimates the squared Euclidean distance.
     See "Pattern Recognition with Partly Missing Data" by John K. Dixon.
     """
     nan_mask = np.isnan(a) | np.isnan(b)
@@ -93,6 +94,10 @@ def dixon_pds_sqeuclidean(a: Vector, b: Vector) -> np.float64:
 
 
 def dixon_pds_euclidean(a: Vector, b: Vector) -> np.float64:
+    """
+    Wrapper for dixon_pds_sqeuclidean. Returns the square root
+    of the estimated squared Euclidean distance.
+    """
     return np.sqrt(dixon_pds_sqeuclidean(a, b))
 
 
@@ -109,7 +114,8 @@ def mesquita_eed(
 
     Assumes distances are Nakagami-distributed. Data distribution modeled via a Gaussian mixture distribution.
 
-    Additional parameters:
+    Additional parameters
+
     :param min_k: Minimum number of Gaussian components to try for GMM.
     :param max_k: Maximum number of Gaussian components to try for GMM.
     :param max_iter: Maximum allowed iterations for each GMM fitting.
@@ -245,7 +251,8 @@ def eirola_esd_gmm(
     The GMM that minimises the corrected AIC gets selected (from all GMMs with k in [min_k, max_k]).
     Algorithm implemented as described in section 3.
 
-    Additional parameters:
+    Additional parameters
+
     :param min_k: Minimum number of Gaussian components to try for GMM.
     :param max_k: Maximum number of Gaussian components to try for GMM.
     :param max_iter: Maximum allowed iterations for each GMM fitting.
@@ -334,6 +341,15 @@ def eirola_esd_gmm(
 def eirola_esd_mvn(
     data: npt.NDArray[np.float64], max_iter: int = 200
 ) -> npt.NDArray[np.float64]:
+    """
+    Expected Squared Distance as proposed by Eirola et al.
+    Using Multivariate Normal Distributions for estimation.
+    See https://doi.org/10.1016/j.ins.2013.03.043
+
+    Additional parameters
+
+    :param max_iter: Maximum allowed iterations for MVN fitting.
+    """
     return eirola_esd_gmm(data, min_k=1, max_k=1, max_iter=max_iter)
 
 
