@@ -63,10 +63,11 @@ class PlotlyVisuBuilder:
 
     :param chm: the ClusteredHeatMap object to visualize.
     :param vertical_layout: Layout of elements on the vertical axis of the plot.
-        Elements include
-        'd' for dendrogram
-        'g' for group markers
-        'h' for heatmap
+        Elements include:
+        - 'd' for dendrogram
+        - 'g' for group markers
+        - 'h' for heatmap
+
         Example: "dgh" for dendrogram on the left, group markers in the middle and
         heatmap on the right or "hd" for dendrogram on the right with no group
         markers.

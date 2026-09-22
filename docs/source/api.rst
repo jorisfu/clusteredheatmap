@@ -13,3 +13,4 @@ The ``PlotlyVisuBuilder`` class
 *******************************
 
 .. autoclass:: clusteredheatmap.visu.plotly.builder::PlotlyVisuBuilder
+   :members:

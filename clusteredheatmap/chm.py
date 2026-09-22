@@ -28,7 +28,7 @@ class ClusteredHeatMap:
 
     :param distance: The name of the distance function to use or a custom distance function.
         Custom distance functions must be compatible with 
-        (see `scipy.spatial.distance <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`__)
+        `scipy.spatial.distance <https://docs.scipy.org/doc/scipy/reference/spatial.distance.html>`__
         functions betweeen two vectors.
         Different distance functions for rows and columns can be selected by passing
         a tuple, specifying row distance at index 0 and column distance at 1.

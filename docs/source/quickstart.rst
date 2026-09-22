@@ -82,6 +82,8 @@ use the ``distance_args`` parameter like this:
 
 ``distance_args`` can also be a tuple if different distances are used for rows/columns.
 
+You can also pass custom functions, see :ref:`chm` for more info.
+
 Adding group markers
 ********************
 
