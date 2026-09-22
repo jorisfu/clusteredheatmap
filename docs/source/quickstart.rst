@@ -40,6 +40,7 @@ See :ref:`chm` and :ref:`pvb` for full documentation on these classes.
 The sections below describe common parameters to change as well 
 as additional builder methods you might need.
 
+.. _setdistandlink:
 Setting distance and linkage metrics
 ************************************
 

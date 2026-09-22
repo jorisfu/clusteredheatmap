@@ -11,7 +11,6 @@ The visualisation is based on plotly.
    :caption: Contents
 
   quickstart
-  chm
-  visu
+  api
   dists
 

@@ -14,8 +14,6 @@ import plotly.graph_objects as go
 import plotly.figure_factory as ff
 
 import plotly.colors
-from plotly.express.colors import qualitative as PLOTLY_COLORSCALES_QUALITATIVE
-
 import distinctipy
 
 class LayoutError(Exception):
@@ -58,6 +56,24 @@ DENDRO_COLORSCALE = ["rgb(133,133,133)" for _ in range(8)]
 
 
 class PlotlyVisuBuilder:
+    """
+    Builder for a plotly-based visualization of a clustered heatmap.
+    Needs some basic layout info as a starting point, subsequent
+    calls then build the visualization step-by-step.
+
+    :param chm: the ClusteredHeatMap object to visualize.
+    :param vertical_layout: Layout of elements on the vertical axis of the plot.
+        Elements include
+        'd' for dendrogram
+        'g' for group markers
+        'h' for heatmap
+        Example: "dgh" for dendrogram on the left, group markers in the middle and
+        heatmap on the right or "hd" for dendrogram on the right with no group
+        markers.
+    :param horizontal_layout: Layout of elements on the horizontal axis of the plot.
+        See vertical_layout for more info.
+    :param background_color: The background color of the plot
+    """
     def __init__(
         self,
         chm: ClusteredHeatMap,
@@ -66,24 +82,6 @@ class PlotlyVisuBuilder:
         horizontal_layout: str = "dgh",
         background_color: Color = "white",
     ) -> None:
-        """
-        Builder for a plotly-based visualization of a clustered heatmap.
-        Needs some basic layout info as a starting point, subsequent
-        calls then build the visualization step-by-step.
-
-        :param chm: the ClusteredHeatMap object to visualize.
-        :param vertical_layout: Layout of elements on the vertical axis of the plot.
-            Elements include
-            'd' for dendrogram
-            'g' for group markers
-            'h' for heatmap
-            Example: "dgh" for dendrogram on the left, group markers in the middle and
-            heatmap on the right or "hd" for dendrogram on the right with no group
-            markers.
-        :param horizontal_layout: Layout of elements on the horizontal axis of the plot.
-            See vertical_layout for more info.
-        :param background_color: The background color of the plot
-        """
 
         self.chm: ClusteredHeatMap = chm
         self.helpers: PlotlyHelpers = PlotlyHelpers(self)
