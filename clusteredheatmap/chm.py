@@ -44,7 +44,7 @@ class ClusteredHeatMap:
         Only applies to passed distance functions and scipy provided functions.
         Can be passed as tuple for separate row/col setting (see ``distance`` parameter).
 
-    :param linkage: The name of the linkage function to use or a custom linkage function.
+    :param linkage: The name of the scipy linkage function to use or a custom linkage function.
         Custom linkage functions must be compatible with 
         `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`__.
         Different linkage functions for rows and columns can be selected by passing
