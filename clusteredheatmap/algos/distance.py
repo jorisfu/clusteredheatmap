@@ -109,12 +109,9 @@ def mesquita_eed(
     gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
-    Expected Euclidean Distance as proposed by Mesquita et al. See http://dx.doi.org/10.1016/j.neucom.2016.12.081.
-    Implemented as described in Algorithm 1.
+    Expected Euclidean Distance as proposed by Mesquita et al. See http://dx.doi.org/10.1016/j.neucom.2016.12.081
 
-    Assumes distances are Nakagami-distributed. Data distribution modeled via a Gaussian mixture distribution.
-
-    Additional parameters
+    Implemented as described in Algorithm 1. Assumes distances are Nakagami-distributed. Data distribution modeled via a Gaussian mixture distribution.
 
     :param min_k: Minimum number of Gaussian components to try for GMM.
     :param max_k: Maximum number of Gaussian components to try for GMM.
@@ -246,12 +243,11 @@ def eirola_esd_gmm(
     gmm: GMMMissing | None = None,
 ) -> npt.NDArray[np.float64]:
     """
-    Expected Squared Distance as proposed by Eirola et al. See http://dx.doi.org/10.1016/j.neucom.2013.07.050
+    Expected Squared Distance as proposed by Eirola et al.
     Using Mixture of Gaussians for estimation.
     The GMM that minimises the corrected AIC gets selected (from all GMMs with k in [min_k, max_k]).
-    Algorithm implemented as described in section 3.
-
-    Additional parameters
+    Algorithm implemented as described in section 3, see
+    http://dx.doi.org/10.1016/j.neucom.2013.07.050
 
     :param min_k: Minimum number of Gaussian components to try for GMM.
     :param max_k: Maximum number of Gaussian components to try for GMM.
