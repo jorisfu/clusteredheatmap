@@ -1,4 +1,4 @@
-# ClusteredHeatMap
+# clusteredheatmap
 Python library for hierarchical clustering algorithms and clustered heatmap / clustergram visualisation.
 Written as part of a bachelor's thesis about distance estimation with missing values and its effects
 on hierarchical clustering of biomedical data.
