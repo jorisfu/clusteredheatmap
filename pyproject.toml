@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clusteredheatmap"
-version = "0.0.6"
+version = "1.0.0"
 authors = [
   { name="Joris Funk", email="joris.funk@student.hpi.uni-potsdam.de" },
 ]
@@ -22,8 +22,12 @@ dependencies = [
   "pandas>=2.3.3",
   "plotly>=6.4.0",
   "scipy>=1.16.3",
+  "nandist>=0.12.0",
+  "scikit-learn>=1.7.2",
+  "distinctipy>=1.3.4",
 ]
 
 [project.urls]
-Homepage = "https://github.com/jorisfu/clusteredheatmap"
+Source = "https://github.com/jorisfu/clusteredheatmap"
 Issues = "https://github.com/jorisfu/clusteredheatmap/issues"
+Documentation = "https://clusteredheatmap.readthedocs.io"
