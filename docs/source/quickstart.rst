@@ -13,7 +13,7 @@ for clusteredheatmap to properly interpret it.
 .. code-block:: python3
 
   from clusteredheatmap.chm import ClusteredHeatMap
-  from clusteredheatmap.visu.ploty.builder import PlotlyVisuBuilder
+  from clusteredheatmap.visu.plotly.builder import PlotlyVisuBuilder
 
   # We assume `df` is your DataFrame in wide format
   c = ClusteredHeatMap(df)
@@ -133,14 +133,14 @@ You can change this by setting the ``_zmin, _zmid, _zmax`` parameters:
 .. code-block:: python3
 
   b.add_heatmap(
-    _zmin: -1.5,
-    _zmid: 0.0,
-    _zmax: 2.0,
+    _zmin=-1.5,
+    _zmid=0.0,
+    _zmax=2.0,
   )
 
-The only restraint to these parameters is ``_zmin < _zmid < _zmax``.
+The only restraint to these parameters is ``_zmin`` < ``_zmid`` < ``_zmax``.
 For ``_zmid``, you can also pass ``"median"`` or ``"mean"`` to set
-the colour scale midpoint to the median or mean of you data.
+the colour scale midpoint to the median or mean of your data.
 
 
 Setting a custom colour scale
@@ -148,7 +148,7 @@ Setting a custom colour scale
 You can set the colour scale to use in the ``colorscale`` parameter.
 All colour scales integrated into plotly are supported,
 see `their documentation <https://plotly.com/python/builtin-colorscales/>`__.
-You can also pass you own custom colour scale like this:
+You can also pass your own custom colour scale like this:
 
 .. code-block:: python3
 
@@ -170,7 +170,7 @@ You can prefix them using the ``ticktext_prefix`` parameter, e.g.:
 .. code-block:: python3
 
    b.add_heatmap(
-     ticktext_prefix: ("5% quantile: ", "Median: ", "95% quantile: ")
+     ticktext_prefix=("5% quantile: ", "Median: ", "95% quantile: ")
    )
 
 You can also change how the floats are formatted by passing a python
@@ -179,7 +179,7 @@ formatting string to ``tickfloatformat``:
 .. code-block:: python3
 
    b.add_heatmap(
-     tickfloatformat = "{:6.4f}",
+     tickfloatformat="{:6.4f}",
    )
 
 
@@ -327,8 +327,8 @@ should be fine for most cases.
 
   # b is your builder
   b.add_heatmap(
-    nan_color = "#000000",
-    nan_label = "Hole in data",
+    nan_color="#000000",
+    nan_label="Hole in data",
   )
 
 
